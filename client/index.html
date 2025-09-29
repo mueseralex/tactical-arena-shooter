@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tactical Arena Shooter</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      overflow: hidden;
+      background: #000;
+      font-family: 'Courier New', monospace;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: none;
+    }
+
+    #ui {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+    }
+
+    #crosshair::before,
+    #crosshair::after {
+      content: '';
+      position: absolute;
+      background: #fff;
+    }
+
+    #crosshair::before {
+      top: 50%;
+      left: 8px;
+      width: 4px;
+      height: 2px;
+      transform: translateY(-50%);
+    }
+
+    #crosshair::after {
+      top: 8px;
+      left: 50%;
+      width: 2px;
+      height: 4px;
+      transform: translateX(-50%);
+    }
+
+    #hud {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 15px 20px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      pointer-events: none;
+      backdrop-filter: blur(5px);
+      min-width: 140px;
+    }
+
+    #hud .stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    #hud .stat:last-child {
+      margin-bottom: 0;
+    }
+
+    #hud .stat-label {
+      color: #ccc;
+      font-size: 14px;
+    }
+
+    #hud .stat-value {
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    #health-value {
+      color: #4ade80; /* Green for health */
+    }
+
+    #ammo-value {
+      color: #60a5fa; /* Blue for ammo */
+    }
+
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    #fps {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: #0f0;
+      font-size: 14px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  
+  <div id="ui">
+    <div id="crosshair"></div>
+    
+    <div id="hud">
+      <div class="stat">
+        <span class="stat-label">HEALTH</span>
+        <span class="stat-value" id="health-value">100</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">AMMO</span>
+        <span class="stat-value" id="ammo-value">30/30</span>
+      </div>
+    </div>
+    
+    <div id="fps">FPS: <span id="fpsValue">60</span></div>
+    
+    <div id="loading">
+      <div>🎮 Tactical Arena Shooter</div>
+      <div style="margin-top: 15px; font-size: 16px;">
+        <div><strong>WASD</strong> - Move</div>
+        <div><strong>Mouse</strong> - Look around</div>
+        <div><strong>Space</strong> - Jump</div>
+        <div><strong>Shift/C</strong> - Crouch</div>
+        <div><strong>Left Click</strong> - Shoot</div>
+        <div><strong>R</strong> - Reload</div>
+        <div><strong>M</strong> - Menu</div>
+      </div>
+      <div style="margin-top: 15px; font-size: 14px; color: #aaa;">
+        Click anywhere to enable mouse look and start playing
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
+

@@ -1,0 +1,44 @@
+{
+  "name": "tactical-arena-shooter",
+  "version": "1.0.0",
+  "description": "A competitive 1v1 tactical shooter built with Three.js and WebSocket",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "tsx server/src/server.ts",
+    "server:dev": "tsx --watch server/src/server.ts",
+    "lint": "eslint . --ext .ts,.tsx",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "three": "^0.158.0",
+    "cannon-es": "^0.20.0",
+    "howler": "^2.2.4",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "@types/three": "^0.158.3",
+    "@types/ws": "^8.5.8",
+    "@types/howler": "^2.2.11",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "eslint": "^8.53.0",
+    "tsx": "^4.1.4",
+    "typescript": "^5.2.2",
+    "vite": "^4.5.0"
+  },
+  "keywords": [
+    "game",
+    "fps",
+    "multiplayer",
+    "threejs",
+    "websocket",
+    "tactical",
+    "shooter"
+  ],
+  "author": "Tactical Arena Shooter Team",
+  "license": "MIT"
+}
+

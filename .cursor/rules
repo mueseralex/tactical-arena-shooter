@@ -1,0 +1,81 @@
+# CRITICAL ALWAYS RULES
+# Always read memory-bank/architecture.md before writing any code. Include entire project structure.
+# Always read memory-bank/game-design-document.md before writing any code.
+# After adding a major feature or completing a milestone, update memory-bank/architecture.md.
+
+# PROJECT CONTEXT
+This is a tactical 1v1 arena shooter built with Three.js and WebSocket for browser-based multiplayer gaming.
+
+# ARCHITECTURE PRINCIPLES
+- Maintain strict separation between client and server code
+- Use modular file structure - avoid monolithic files
+- Server-authoritative networking for competitive integrity
+- Performance-first approach - target 60+ FPS consistently
+- Clean, readable code with proper TypeScript typing
+
+# THREE.JS BEST PRACTICES
+- Always dispose of geometries, materials, and textures when no longer needed
+- Use object pooling for frequently created/destroyed objects (bullets, particles)
+- Implement frustum culling for off-screen objects
+- Batch geometry updates and minimize draw calls
+- Use appropriate texture sizes and compression
+
+# NETWORKING GUIDELINES
+- All game-critical actions must be validated server-side
+- Use client-side prediction for responsive movement
+- Implement proper interpolation for smooth remote player movement
+- Minimize network packet size and frequency
+- Handle connection drops and reconnections gracefully
+
+# CODE ORGANIZATION
+- client/ directory for all frontend code
+- server/ directory for all backend code  
+- shared/ directory for common types and utilities
+- Separate systems into logical modules (rendering, input, networking, etc.)
+- Use TypeScript interfaces for all data structures
+
+# PERFORMANCE REQUIREMENTS
+- Maintain 60+ FPS on mid-range hardware
+- Sub-50ms network latency for competitive play
+- Memory usage should remain stable over extended play
+- Load times under 5 seconds from connection to gameplay
+
+# UI/UX STANDARDS
+- Minimalist, high-contrast design for competitive clarity
+- Responsive controls with no input lag
+- Clear visual feedback for all player actions
+- Accessible color schemes and readable fonts
+- Mobile-friendly responsive design principles
+
+# TESTING APPROACH
+- Each implementation step must include validation tests
+- Test multiplayer functionality with multiple browser instances
+- Validate server performance under load
+- Check cross-browser compatibility
+- Verify audio/visual synchronization
+
+# SECURITY CONSIDERATIONS
+- Never trust client-side data for game-critical decisions
+- Implement rate limiting on all server endpoints
+- Validate all input data server-side
+- Use secure WebSocket connections in production
+- Implement basic anti-cheat measures
+
+# FILE NAMING CONVENTIONS
+- Use kebab-case for file names (player-controller.ts)
+- Use PascalCase for class names (PlayerController)
+- Use camelCase for function and variable names
+- Use UPPER_CASE for constants and enums
+
+# ERROR HANDLING
+- Implement comprehensive error handling for network issues
+- Graceful degradation when features are unavailable
+- Clear error messages for debugging
+- Proper cleanup on errors to prevent memory leaks
+
+# DOCUMENTATION
+- Update memory-bank/architecture.md after major changes
+- Comment complex algorithms and game logic
+- Document public APIs and interfaces
+- Maintain README with setup and deployment instructions
+
