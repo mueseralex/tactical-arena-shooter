@@ -13,6 +13,11 @@ export default defineConfig({
   },
   preview: {
     port: parseInt(process.env.PORT || '4173'),
-    host: '0.0.0.0'
+    host: '0.0.0.0',
+    allowedHosts: [
+      'game-client-production-c4de.up.railway.app',
+      '.railway.app',
+      'localhost'
+    ]
   }
 })
