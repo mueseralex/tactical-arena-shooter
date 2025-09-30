@@ -34,10 +34,23 @@ export class NetworkedPlayerManager {
     // Create player model
     const playerModel = new PlayerModel('red') // Enemy player
     playerModel.position.set(0, 1.8, 0) // Start at ground level, will be updated from server
+    playerModel.visible = true // Ensure visibility
+    playerModel.scale.set(2, 2, 2) // Make it bigger for testing visibility
     this.scene.add(playerModel)
+    
+    // Add a bright test cube to make sure we can see SOMETHING
+    const testGeometry = new THREE.BoxGeometry(1, 1, 1)
+    const testMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true })
+    const testCube = new THREE.Mesh(testGeometry, testMaterial)
+    testCube.position.set(0, 3, 0) // Above the player model
+    playerModel.add(testCube) // Attach to player model so it moves with it
+    console.log(`🔴 Added bright red test cube above player ${playerId}`)
     
     console.log(`🎬 Scene children count after:`, this.scene.children.length)
     console.log(`✅ Networked player ${playerId} model added to scene at position (0, 1.8, 0)`)
+    console.log(`👁️ New player model visibility:`, playerModel.visible)
+    console.log(`📏 New player model scale:`, playerModel.scale)
+    console.log(`🎯 New player model world position:`, playerModel.getWorldPosition(new THREE.Vector3()))
 
     // Create networked player data
     const networkedPlayer: NetworkedPlayer = {
@@ -86,6 +99,13 @@ export class NetworkedPlayerManager {
     // Immediately update position (we can add interpolation later)
     player.model.position.set(position.x, position.y, position.z)
     player.model.rotation.set(rotation.x, rotation.y, rotation.z)
+    
+    // Force the model to be visible and check if it's in the scene
+    player.model.visible = true
+    console.log(`👁️ Player ${playerId} model visibility:`, player.model.visible)
+    console.log(`🎬 Player ${playerId} model in scene:`, this.scene.children.includes(player.model))
+    console.log(`📏 Player ${playerId} model scale:`, player.model.scale)
+    console.log(`🎯 Player ${playerId} model world position:`, player.model.getWorldPosition(new THREE.Vector3()))
     
     console.log(`✅ Player ${playerId} model updated in scene`)
     
