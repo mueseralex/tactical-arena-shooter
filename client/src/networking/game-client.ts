@@ -127,7 +127,8 @@ export class GameClient {
         break
         
       case 'round_start':
-        console.log(`🎯 Round ${message.round} started!`)
+        console.log(`🎯 Round ${message.round} started!`, message)
+        console.log('🎯 Round start callback exists:', !!this.onRoundStart)
         this.onRoundStart?.(message)
         break
         

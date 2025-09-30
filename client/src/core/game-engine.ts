@@ -807,7 +807,16 @@ export class GameEngine {
 
   // Competitive game event handlers
   private handleRoundStart(roundData: any): void {
-    console.log(`🎯 Round ${roundData.round} starting!`)
+    console.log(`🎯 Round ${roundData.round} starting!`, roundData)
+    
+    // CRITICAL: Ensure controls are initialized before doing anything
+    if (!this.controls) {
+      console.error('❌ CRITICAL: Controls not initialized when round started!')
+      console.log('🔧 Emergency controls initialization...')
+      this.initControls()
+      this.settingsMenu.applyInitialSettings()
+      this.connectControlsToNetworking()
+    }
     
     // FORCE CLOSE THE MENU - this is critical for multiplayer
     if (this.settingsMenu.visible) {
@@ -833,12 +842,18 @@ export class GameEngine {
     
     // Teleport player to spawn position
     if (roundData.spawnPosition && this.camera) {
+      console.log(`📍 Setting spawn position: ${JSON.stringify(roundData.spawnPosition)}`)
       this.camera.position.set(
         roundData.spawnPosition.x,
         roundData.spawnPosition.y,
         roundData.spawnPosition.z
       )
-      console.log(`📍 Spawned at: ${roundData.spawnPosition.x}, ${roundData.spawnPosition.y}, ${roundData.spawnPosition.z}`)
+      console.log(`📍 Camera position set to: ${this.camera.position.x}, ${this.camera.position.y}, ${this.camera.position.z}`)
+    } else {
+      console.error('❌ No spawn position provided or camera missing!', {
+        spawnPosition: roundData.spawnPosition,
+        camera: !!this.camera
+      })
     }
     
     // Show round countdown before starting
