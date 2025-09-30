@@ -103,6 +103,14 @@ export class GameEngine {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.setClearColor(0x87CEEB, 1) // Sky blue background
     this.renderer.shadowMap.enabled = true
+    
+    // Add click handler to canvas for pointer lock
+    this.canvas.addEventListener('click', () => {
+      if (this.gameState === 'playing' && this.controls) {
+        console.log('🖱️ Canvas clicked - requesting pointer lock')
+        this.canvas.requestPointerLock()
+      }
+    })
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     
     console.log('✅ Renderer initialized')
@@ -308,6 +316,9 @@ export class GameEngine {
         this.connectControlsToNetworking()
         
         this.isGameInitialized = true
+        console.log('✅ Game initialization complete - controls should be ready')
+      } else {
+        console.log('🎮 Game already initialized, controls should exist:', !!this.controls)
       }
       
       // Update menu state
@@ -813,8 +824,21 @@ export class GameEngine {
       // Ensure controls are enabled and pointer lock is active
       if (this.controls) {
         console.log('🎮 Enabling controls for round start')
-        // Request pointer lock to enable mouse controls
-        this.canvas.requestPointerLock()
+        console.log('🎮 Controls object exists:', !!this.controls)
+        console.log('🎮 Canvas element:', !!this.canvas)
+        
+        // Force request pointer lock multiple times to ensure it works
+        setTimeout(() => {
+          this.canvas.requestPointerLock()
+          console.log('🔒 Requested pointer lock (immediate)')
+        }, 100)
+        
+        setTimeout(() => {
+          this.canvas.requestPointerLock()
+          console.log('🔒 Requested pointer lock (delayed)')
+        }, 500)
+      } else {
+        console.error('❌ Controls not initialized when round started!')
       }
       
       console.log(`🎯 Round ${roundData.round} started!`)
