@@ -737,8 +737,15 @@ export class GameEngine {
   }
 
   private connectControlsToNetworking(): void {
+    console.log('🚨 CRITICAL: connectControlsToNetworking() called')
+    console.log('🚨 CRITICAL: Controls exist:', !!this.controls)
+    console.log('🚨 CRITICAL: GameClient exists:', !!this.gameClient)
+    console.log('🚨 CRITICAL: GameClient connected:', this.gameClient?.connected)
+    
     if (!this.controls || !this.gameClient) {
-      console.warn('⚠️ Cannot connect controls to networking - missing components')
+      console.error('❌ CRITICAL: Cannot connect controls to networking - missing components')
+      console.error('❌ CRITICAL: Controls:', !!this.controls)
+      console.error('❌ CRITICAL: GameClient:', !!this.gameClient)
       return
     }
 
@@ -788,7 +795,17 @@ export class GameEngine {
       }
     })
     
-    console.log('✅ Controls connected to networking')
+    console.log('✅ CRITICAL: Controls connected to networking - callback should be set')
+    console.log('🚨 CRITICAL: Testing position callback by calling it manually...')
+    
+    // Test the callback manually
+    if (this.controls) {
+      console.log('🚨 CRITICAL: Manually triggering position update to test callback')
+      // This should trigger our debug messages
+      this.controls.setPositionCallback((pos, rot) => {
+        console.log('🚨 CRITICAL: MANUAL TEST CALLBACK TRIGGERED!', pos, rot)
+      })
+    }
   }
 
   handleResize(): void {
