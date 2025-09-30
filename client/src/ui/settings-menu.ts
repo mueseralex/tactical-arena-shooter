@@ -14,6 +14,7 @@ export class SettingsMenu {
   private onFOVChange?: (fov: number) => void
   private onViewmodelChange?: (enabled: boolean) => void
   private onStartGame?: () => void
+  private onStartPractice?: () => void
   private onShouldClose?: () => boolean
   private onRequestServerInfo?: () => void
   
@@ -72,15 +73,16 @@ export class SettingsMenu {
           <div class="settings-content">
             <!-- Game Tab -->
             <div class="tab-content active" data-tab="game">
-              <div class="settings-section">
-                <h3>🎯 Matchmaking</h3>
-                <div class="button-group">
-                  <button class="btn btn-primary" id="matchmake-1v1">⚔️ Matchmake 1v1</button>
-                  <button class="btn btn-secondary" id="resume-game" style="display: none;">▶️ Resume Game</button>
-                  <button class="btn btn-secondary" id="restart-match" style="display: none;">🔄 Restart Match</button>
-                  <button class="btn btn-danger" id="quit-game">🚪 Quit Game</button>
-                </div>
-              </div>
+          <div class="settings-section">
+            <h3>🎯 Game Modes</h3>
+            <div class="button-group">
+              <button class="btn btn-primary" id="matchmake-1v1">⚔️ Matchmake 1v1</button>
+              <button class="btn btn-success" id="solo-practice">🎯 Solo Practice</button>
+              <button class="btn btn-secondary" id="resume-game" style="display: none;">▶️ Resume Game</button>
+              <button class="btn btn-secondary" id="restart-match" style="display: none;">🔄 Restart Match</button>
+              <button class="btn btn-danger" id="quit-game">🚪 Quit Game</button>
+            </div>
+          </div>
               
               <div class="settings-section">
                 <h3>🌐 Server List</h3>
@@ -474,6 +476,16 @@ export class SettingsMenu {
         transform: translateY(-1px);
       }
       
+      .btn-success {
+        background: #10b981;
+        color: #fff;
+      }
+      
+      .btn-success:hover {
+        background: #059669;
+        transform: translateY(-1px);
+      }
+      
       .debug-section {
         margin-bottom: 25px;
         border-top: 1px solid rgba(255, 255, 255, 0.2);
@@ -858,6 +870,12 @@ export class SettingsMenu {
       console.log('⚔️ Matchmake 1v1 requested')
       this.onStartGame?.()
     })
+
+    const soloPracticeBtn = this.settingsElement.querySelector('#solo-practice') as HTMLButtonElement
+    soloPracticeBtn?.addEventListener('click', () => {
+      console.log('🎯 Solo practice requested')
+      this.onStartPractice?.()
+    })
     
     const resumeBtn = this.settingsElement.querySelector('#resume-game') as HTMLButtonElement
     resumeBtn?.addEventListener('click', () => this.hide())
@@ -1027,6 +1045,10 @@ export class SettingsMenu {
 
   onStartGameRequested(callback: () => void): void {
     this.onStartGame = callback
+  }
+
+  onStartPracticeRequested(callback: () => void): void {
+    this.onStartPractice = callback
   }
 
   onShouldCloseCheck(callback: () => boolean): void {

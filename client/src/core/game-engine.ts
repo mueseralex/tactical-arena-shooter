@@ -21,6 +21,7 @@ export class GameEngine {
   
   // Game state
   private gameState: 'menu' | 'playing' = 'menu'
+  private gameMode: 'multiplayer' | 'practice' = 'multiplayer'
   private isGameInitialized = false
   private isRunning = false
   private isPaused = false
@@ -168,6 +169,10 @@ export class GameEngine {
     this.settingsMenu.onStartGameRequested(() => {
       this.requestMatchmaking()
     })
+
+    this.settingsMenu.onStartPracticeRequested(() => {
+      this.startPracticeMode()
+    })
     
     this.settingsMenu.onShouldCloseCheck(() => {
       // Only allow closing if we're in playing state
@@ -186,7 +191,7 @@ export class GameEngine {
     // Add M key handler to toggle menu
     document.addEventListener('keydown', (event) => {
       if (event.code === 'KeyM') {
-        console.log('🔧 M key pressed - toggling game menu')
+        console.log(`🔧 M key pressed - Game state: ${this.gameState}, Mode: ${this.gameMode}, Menu visible: ${this.settingsMenu.visible}, Round: ${this.currentRound}`)
         
         // If we're in menu state and menu is visible, don't close it
         if (this.gameState === 'menu' && this.settingsMenu.visible) {
@@ -198,8 +203,19 @@ export class GameEngine {
         if (this.gameState === 'menu') {
           this.settingsMenu.show()
         } else {
-          // We're in game - toggle normally
-          this.settingsMenu.toggle()
+          // We're in game - check for stuck menu during active multiplayer
+          if (this.settingsMenu.visible && this.gameMode === 'multiplayer' && this.currentRound > 0) {
+            console.log('🔧 FORCE CLOSING stuck menu during active multiplayer round')
+            this.settingsMenu.hide()
+            // Request pointer lock to get back into game
+            const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement
+            if (canvas) {
+              canvas.requestPointerLock()
+            }
+          } else {
+            // Normal toggle
+            this.settingsMenu.toggle()
+          }
         }
         
         event.preventDefault()
@@ -245,7 +261,12 @@ export class GameEngine {
     this.gameClient.onMatchFoundCallback((matchData) => {
       console.log('⚔️ Match found! Starting game...', matchData)
       
-      // Hide the menu immediately
+      // IMMEDIATELY set game state to playing
+      this.gameState = 'playing'
+      this.gameMode = 'multiplayer'
+      
+      // Hide the menu immediately and force it
+      console.log('🔧 Force hiding menu for match start')
       this.settingsMenu.hide()
       
       // Show match start countdown
@@ -421,8 +442,9 @@ export class GameEngine {
   }
 
   startGame(): void {
-    console.log('🚀 Starting game...')
+    console.log('🚀 Starting multiplayer game...')
     this.gameState = 'playing'
+    this.gameMode = 'multiplayer'
     
     // Initialize game elements if not already done
     if (!this.isGameInitialized) {
@@ -456,7 +478,51 @@ export class GameEngine {
       this.start()
     }
     
-    console.log('✅ Game started successfully')
+    console.log('✅ Multiplayer game started successfully')
+  }
+
+  startPracticeMode(): void {
+    console.log('🎯 Starting solo practice mode...')
+    
+    this.gameState = 'playing'
+    this.gameMode = 'practice'
+    
+    // Hide the menu immediately
+    this.settingsMenu.hide()
+    
+    // Show practice start countdown
+    this.showPracticeStartCountdown(() => {
+      if (!this.isGameInitialized) {
+        console.log('🚀 Initializing practice components...')
+        
+        console.log('🏟️ Initializing arena...')
+        this.initArena()
+        
+        console.log('🎮 Initializing controls...')
+        this.initControls()
+        
+        // Apply settings now that controls are ready
+        console.log('⚙️ Applying initial settings to controls...')
+        this.settingsMenu.applyInitialSettings()
+        
+        // Don't connect to networking in practice mode
+        
+        this.isGameInitialized = true
+        console.log('✅ Practice initialization complete')
+      }
+      
+      // Update menu state
+      this.settingsMenu.updateGameState(true) // Show resume/restart buttons
+      
+      if (!this.isRunning) {
+        this.start()
+      }
+      
+      // Set player to spawn position (left side)
+      this.camera.position.set(-15, 1.8, 0)
+      
+      console.log('🎯 Solo practice started!')
+    })
   }
 
   private async requestMatchmaking(): Promise<void> {
@@ -638,6 +704,12 @@ export class GameEngine {
   // Competitive game event handlers
   private handleRoundStart(roundData: any): void {
     console.log(`🎯 Round ${roundData.round} starting!`)
+    
+    // FORCE CLOSE THE MENU - this is critical for multiplayer
+    if (this.settingsMenu.visible) {
+      console.log('🔧 Force closing menu for round start')
+      this.settingsMenu.hide()
+    }
     
     // Update match state
     this.currentRound = roundData.round
@@ -993,6 +1065,52 @@ export class GameEngine {
       textElement.className = '' // Reset classes
       numberElement.className = ''
     }, 3000)
+  }
+
+  private showPracticeStartCountdown(onComplete: () => void): void {
+    console.log('⏱️ Starting practice countdown...')
+    
+    const overlay = document.getElementById('countdown-overlay')
+    const textElement = document.getElementById('countdown-text')
+    const numberElement = document.getElementById('countdown-number')
+    
+    if (!overlay || !textElement || !numberElement) {
+      console.warn('⚠️ Countdown elements not found, starting practice immediately')
+      onComplete()
+      return
+    }
+    
+    // Show overlay
+    overlay.style.display = 'flex'
+    textElement.textContent = 'Practice Mode'
+    
+    let count = 3
+    
+    const updateCountdown = () => {
+      if (count > 0) {
+        numberElement.textContent = count.toString()
+        numberElement.className = '' // Reset classes
+        // Trigger animation by forcing reflow
+        numberElement.offsetHeight
+        numberElement.style.animation = 'none'
+        numberElement.offsetHeight
+        numberElement.style.animation = 'countdownPulse 1s ease-in-out'
+        
+        count--
+        setTimeout(updateCountdown, 1000)
+      } else {
+        // Show "PRACTICE!" message
+        numberElement.textContent = 'PRACTICE!'
+        numberElement.classList.add('countdown-go')
+        
+        setTimeout(() => {
+          overlay.style.display = 'none'
+          onComplete()
+        }, 800)
+      }
+    }
+    
+    updateCountdown()
   }
 
   // Cleanup method for proper disposal
