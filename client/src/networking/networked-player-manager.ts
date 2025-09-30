@@ -27,13 +27,16 @@ export class NetworkedPlayerManager {
       return
     }
 
-    console.log(`👤 Adding networked player ${playerId}`)
+    console.log(`👤 Adding networked player ${playerId} to scene`)
+    console.log(`👥 Current players in manager:`, Array.from(this.players.keys()))
+    console.log(`🎬 Scene children count before:`, this.scene.children.length)
     
     // Create player model
     const playerModel = new PlayerModel('red') // Enemy player
     playerModel.position.set(0, 1.8, 0) // Start at ground level, will be updated from server
     this.scene.add(playerModel)
     
+    console.log(`🎬 Scene children count after:`, this.scene.children.length)
     console.log(`✅ Networked player ${playerId} model added to scene at position (0, 1.8, 0)`)
 
     // Create networked player data

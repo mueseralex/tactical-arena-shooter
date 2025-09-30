@@ -37,6 +37,46 @@ setInterval(() => {
   }
 }, 300000) // Run every 5 minutes
 
+// Position synchronization interval (like Python script's broadcast loop)
+setInterval(() => {
+  // Broadcast all player positions to keep everyone synchronized
+  for (const [matchId, match] of activeMatches.entries()) {
+    if (match.status === 'active') {
+      // Gather all positions for this match
+      const matchPositions: any[] = []
+      
+      match.players.forEach((playerId: number) => {
+        const player = connectedPlayers.get(playerId)
+        if (player && player.isAlive) {
+          matchPositions.push({
+            playerId: playerId,
+            position: player.position,
+            rotation: player.rotation || { x: 0, y: 0, z: 0 },
+            health: player.health
+          })
+        }
+      })
+      
+      // Send positions to all players in match
+      match.players.forEach((playerId: number) => {
+        const player = connectedPlayers.get(playerId)
+        if (player && player.ws.readyState === player.ws.OPEN) {
+          matchPositions.forEach((pos) => {
+            if (pos.playerId !== playerId) {
+              player.ws.send(JSON.stringify({
+                type: 'player_position_update',
+                playerId: pos.playerId,
+                position: pos.position,
+                rotation: pos.rotation
+              }))
+            }
+          })
+        }
+      })
+    }
+  }
+}, 200) // Every 200ms for smooth sync
+
 // Spawn points for 1v1 (behind cover boxes for protection)
 const SPAWN_POINTS = {
   player1: { x: -12, y: 1.8, z: 8 }, // Left side spawn (behind cover)
@@ -134,14 +174,33 @@ function handlePlayerMessage(playerId: number, message: any) {
       break
       
     case 'player_position':
-      // Update player position and broadcast to others
+      // Update player position and broadcast to others (Python script approach)
       if (message.position) {
+        // Store player position (like Python script's players dict)
         player.position = message.position
-        broadcast({
-          type: 'player_position_update',
-          playerId: playerId,
-          position: message.position
-        }, playerId)
+        player.rotation = message.rotation || { x: 0, y: 0, z: 0 }
+        player.lastActivity = Date.now()
+        
+        // Broadcast to other players in the same match only
+        if (player.matchId) {
+          const match = activeMatches.get(player.matchId)
+          if (match) {
+            // Send to all other players in match (like Python's broadcast)
+            match.players.forEach((otherPlayerId: number) => {
+              if (otherPlayerId !== playerId) {
+                const otherPlayer = connectedPlayers.get(otherPlayerId)
+                if (otherPlayer && otherPlayer.ws.readyState === otherPlayer.ws.OPEN) {
+                  otherPlayer.ws.send(JSON.stringify({
+                    type: 'player_position_update',
+                    playerId: playerId,
+                    position: player.position,
+                    rotation: player.rotation
+                  }))
+                }
+              }
+            })
+          }
+        }
       }
       break
       
@@ -284,6 +343,22 @@ function startRound(matchId: string) {
       timeLimit: match.roundTimeLimit,
       scores: match.scores
     }))
+    
+    // Send information about all other players in the match
+    match.players.forEach((otherPlayerId: number) => {
+      if (otherPlayerId !== playerId) {
+        const otherPlayer = connectedPlayers.get(otherPlayerId)
+        if (otherPlayer) {
+          player.ws.send(JSON.stringify({
+            type: 'player_joined',
+            playerId: otherPlayerId,
+            position: otherPlayer.position,
+            health: otherPlayer.health
+          }))
+          console.log(`👥 Told player ${playerId} about player ${otherPlayerId}`)
+        }
+      }
+    })
     
     // Send position update to other players
     broadcast({
