@@ -112,11 +112,7 @@ wss.on('connection', (ws, request) => {
     message: 'Connected to Tactical Arena Shooter server'
   }))
   
-  // Broadcast player join to others
-  broadcast({
-    type: 'player_joined',
-    playerId: playerId
-  }, playerId)
+  // Don't broadcast player_joined here - only when they join a match
 
   // Handle incoming messages
   ws.on('message', (data) => {
@@ -181,15 +177,19 @@ function handlePlayerMessage(playerId: number, message: any) {
         player.rotation = message.rotation || { x: 0, y: 0, z: 0 }
         player.lastActivity = Date.now()
         
+        console.log(`📍 Server received position from player ${playerId}:`, player.position)
+        
         // Broadcast to other players in the same match only
         if (player.matchId) {
           const match = activeMatches.get(player.matchId)
           if (match) {
+            console.log(`📡 Broadcasting position to ${match.players.length - 1} other players in match ${player.matchId}`)
             // Send to all other players in match (like Python's broadcast)
             match.players.forEach((otherPlayerId: number) => {
               if (otherPlayerId !== playerId) {
                 const otherPlayer = connectedPlayers.get(otherPlayerId)
                 if (otherPlayer && otherPlayer.ws.readyState === otherPlayer.ws.OPEN) {
+                  console.log(`📤 Sending position update to player ${otherPlayerId}`)
                   otherPlayer.ws.send(JSON.stringify({
                     type: 'player_position_update',
                     playerId: playerId,
@@ -199,7 +199,11 @@ function handlePlayerMessage(playerId: number, message: any) {
                 }
               }
             })
+          } else {
+            console.log(`⚠️ Player ${playerId} has matchId ${player.matchId} but match not found`)
           }
+        } else {
+          console.log(`⚠️ Player ${playerId} not in a match, not broadcasting position`)
         }
       }
       break
@@ -344,21 +348,23 @@ function startRound(matchId: string) {
       scores: match.scores
     }))
     
-    // Send information about all other players in the match
-    match.players.forEach((otherPlayerId: number) => {
-      if (otherPlayerId !== playerId) {
-        const otherPlayer = connectedPlayers.get(otherPlayerId)
-        if (otherPlayer) {
-          player.ws.send(JSON.stringify({
-            type: 'player_joined',
-            playerId: otherPlayerId,
-            position: otherPlayer.position,
-            health: otherPlayer.health
-          }))
-          console.log(`👥 Told player ${playerId} about player ${otherPlayerId}`)
+    // Send information about all other players in the match (with slight delay)
+    setTimeout(() => {
+      match.players.forEach((otherPlayerId: number) => {
+        if (otherPlayerId !== playerId) {
+          const otherPlayer = connectedPlayers.get(otherPlayerId)
+          if (otherPlayer) {
+            player.ws.send(JSON.stringify({
+              type: 'player_joined',
+              playerId: otherPlayerId,
+              position: otherPlayer.position,
+              health: otherPlayer.health
+            }))
+            console.log(`👥 Told player ${playerId} about player ${otherPlayerId}`)
+          }
         }
-      }
-    })
+      })
+    }, 500) // 500ms delay to ensure client is ready
     
     // Send position update to other players
     broadcast({

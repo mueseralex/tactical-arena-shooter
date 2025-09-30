@@ -304,6 +304,7 @@ export class GameEngine {
     })
     
     this.gameClient.onPlayerPositionUpdateCallback((playerId, position, rotation) => {
+      console.log(`📍 Received position update for player ${playerId}:`, position, rotation)
       this.networkedPlayerManager.updatePlayerPosition(playerId, position, rotation)
     })
     
@@ -760,6 +761,7 @@ export class GameEngine {
     // Set up position update callback (Python script style - immediate sync)
     this.controls.setPositionCallback((position, rotation) => {
       if (this.gameClient.connected && this.gameState === 'playing') {
+        console.log(`📤 Sending position update:`, { x: position.x, y: position.y, z: position.z })
         this.gameClient.sendPlayerPosition(
           { x: position.x, y: position.y, z: position.z },
           { x: rotation.x, y: rotation.y, z: rotation.z }

@@ -103,8 +103,9 @@ export class GameClient {
         break
         
       case 'player_joined':
-        console.log('👤 Player joined match:', message.playerId, message)
+        console.log('👤 Player joined match:', message.playerId, 'Position:', message.position, 'Health:', message.health)
         console.log('👤 Player joined callback exists:', !!this.onPlayerJoined)
+        console.log('👤 NetworkedPlayerManager exists:', !!this.onPlayerJoined)
         this.onPlayerJoined?.(message.playerId)
         break
         
