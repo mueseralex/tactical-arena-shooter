@@ -25,10 +25,10 @@ let matchIdCounter = 0
 // Active matches
 const activeMatches = new Map()
 
-// Spawn points for 1v1 (opposite sides of arena)
+// Spawn points for 1v1 (behind cover boxes for protection)
 const SPAWN_POINTS = {
-  player1: { x: -15, y: 1.8, z: 0 }, // Left side spawn
-  player2: { x: 15, y: 1.8, z: 0 }   // Right side spawn
+  player1: { x: -12, y: 1.8, z: 8 }, // Left side spawn (behind cover)
+  player2: { x: 12, y: 1.8, z: 8 }   // Right side spawn (behind cover)
 }
 
 wss.on('connection', (ws, request) => {

@@ -519,8 +519,8 @@ export class GameEngine {
         this.start()
       }
       
-      // Set player to spawn position (left side)
-      this.camera.position.set(-15, 1.8, 0)
+      // Set player to spawn position (original safe spawn behind cover)
+      this.camera.position.set(0, 1.8, 11)
       
       console.log('🎯 Solo practice started!')
     })
