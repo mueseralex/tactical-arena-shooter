@@ -64,21 +64,32 @@ export class CollisionSystem {
     // Try to slide along walls by testing individual axis movements
     const validPosition = currentPosition.clone()
     
-    // Test X movement only
-    const testX = new THREE.Vector3(newPosition.x, newPosition.y, currentPosition.z)
+    // ALWAYS allow Y movement first (jumping/falling) - this prevents getting stuck
+    const testY = new THREE.Vector3(currentPosition.x, newPosition.y, currentPosition.z)
+    if (!this.checkCollision(testY, radius)) {
+      validPosition.y = newPosition.y
+    }
+    
+    // Test X movement with the new Y position
+    const testX = new THREE.Vector3(newPosition.x, validPosition.y, currentPosition.z)
     if (!this.checkCollision(testX, radius)) {
       validPosition.x = newPosition.x
     }
     
-    // Test Z movement only  
-    const testZ = new THREE.Vector3(validPosition.x, newPosition.y, newPosition.z)
+    // Test Z movement with the current valid X,Y position
+    const testZ = new THREE.Vector3(validPosition.x, validPosition.y, newPosition.z)
     if (!this.checkCollision(testZ, radius)) {
       validPosition.z = newPosition.z
     }
     
-    // Always allow Y movement (jumping/falling) - but test it too
-    if (!this.checkCollision(new THREE.Vector3(validPosition.x, newPosition.y, validPosition.z), radius)) {
-      validPosition.y = newPosition.y
+    // If player is moving upward and there's horizontal collision, 
+    // allow them to "climb over" low obstacles
+    if (newPosition.y > currentPosition.y && validPosition.y > currentPosition.y) {
+      const climbTestHeight = validPosition.y + 0.5 // Try climbing a bit higher
+      const climbTest = new THREE.Vector3(newPosition.x, climbTestHeight, newPosition.z)
+      if (!this.checkCollision(climbTest, radius)) {
+        return new THREE.Vector3(newPosition.x, climbTestHeight, newPosition.z)
+      }
     }
     
     return validPosition

@@ -180,6 +180,10 @@ export class GameEngine {
       this.startPracticeMode()
     })
     
+    this.settingsMenu.onExitPracticeRequested(() => {
+      this.exitPracticeMode()
+    })
+    
     this.settingsMenu.onShouldCloseCheck(() => {
       // Only allow closing if we're in playing state
       return this.gameState === 'playing'
@@ -472,7 +476,7 @@ export class GameEngine {
     }
     
     // Update menu state to show resume/restart buttons
-    this.settingsMenu.updateGameState(true)
+    this.settingsMenu.updateGameState(true, 'multiplayer')
     
     // Hide menu and start game loop
     this.settingsMenu.hide()
@@ -494,36 +498,80 @@ export class GameEngine {
     // Hide the menu immediately
     this.settingsMenu.hide()
     
-    // Show practice start countdown
-    this.showPracticeStartCountdown(() => {
-      if (!this.isGameInitialized) {
-        console.log('🚀 Initializing practice components...')
-        
-        console.log('🎮 Initializing controls...')
-        this.initControls()
-        
-        // Apply settings now that controls are ready
-        console.log('⚙️ Applying initial settings to controls...')
-        this.settingsMenu.applyInitialSettings()
-        
-        // Don't connect to networking in practice mode
-        
-        this.isGameInitialized = true
-        console.log('✅ Practice initialization complete')
-      }
+    // Start practice immediately (no countdown)
+    if (!this.isGameInitialized) {
+      console.log('🚀 Initializing practice components...')
       
-      // Update menu state
-      this.settingsMenu.updateGameState(true) // Show resume/restart buttons
+      console.log('🎮 Initializing controls...')
+      this.initControls()
       
-      if (!this.isRunning) {
-        this.start()
-      }
+      // Apply settings now that controls are ready
+      console.log('⚙️ Applying initial settings to controls...')
+      this.settingsMenu.applyInitialSettings()
       
-      // Set player to spawn position (original safe spawn behind cover)
-      this.camera.position.set(0, 1.8, 11)
+      // Don't connect to networking in practice mode
       
-      console.log('🎯 Solo practice started!')
-    })
+      this.isGameInitialized = true
+      console.log('✅ Practice initialization complete')
+    }
+    
+    // Update menu state
+    this.settingsMenu.updateGameState(true, 'practice') // Show exit practice button
+    
+    if (!this.isRunning) {
+      this.start()
+    }
+    
+    // Set player to spawn position (original safe spawn behind cover)
+    this.camera.position.set(0, 1.8, 11)
+    
+    console.log('🎯 Solo practice started!')
+  }
+
+  exitPracticeMode(): void {
+    console.log('🚪 Exiting practice mode...')
+    
+    // Stop the game
+    this.stop()
+    
+    // Reset game state to menu
+    this.gameState = 'menu'
+    this.gameMode = 'multiplayer'
+    this.isGameInitialized = false
+    
+    // Reset camera to menu position
+    this.camera.position.set(0, 1.8, 11)
+    
+    // Dispose of controls if they exist
+    if (this.controls) {
+      this.controls.dispose()
+    }
+    
+    // Clear any networking
+    if (this.gameClient) {
+      this.gameClient.disconnect()
+    }
+    
+    // Reset match state
+    this.currentHealth = 100
+    this.currentRound = 0
+    this.roundTimeLeft = 0
+    this.isAlive = true
+    this.scores = {}
+    
+    // Clear round timer
+    if (this.roundTimer) {
+      clearInterval(this.roundTimer)
+      this.roundTimer = null
+    }
+    
+    // Update menu state to show main menu buttons
+    this.settingsMenu.updateGameState(false)
+    
+    // Show the main menu
+    this.showMainMenu()
+    
+    console.log('✅ Returned to main menu')
   }
 
   private async requestMatchmaking(): Promise<void> {

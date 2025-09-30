@@ -15,6 +15,7 @@ export class SettingsMenu {
   private onViewmodelChange?: (enabled: boolean) => void
   private onStartGame?: () => void
   private onStartPractice?: () => void
+  private onExitPractice?: () => void
   private onShouldClose?: () => boolean
   private onRequestServerInfo?: () => void
   
@@ -74,48 +75,23 @@ export class SettingsMenu {
             <!-- Game Tab -->
             <div class="tab-content active" data-tab="game">
           <div class="settings-section">
-            <h3>🎯 Game Modes</h3>
+            <h3>🎮 Game Modes</h3>
             <div class="button-group">
-              <button class="btn btn-primary" id="matchmake-1v1">⚔️ Matchmake 1v1</button>
-              <button class="btn btn-success" id="solo-practice">🎯 Solo Practice</button>
-              <button class="btn btn-secondary" id="resume-game" style="display: none;">▶️ Resume Game</button>
-              <button class="btn btn-secondary" id="restart-match" style="display: none;">🔄 Restart Match</button>
-              <button class="btn btn-danger" id="quit-game">🚪 Quit Game</button>
+              <button class="btn btn-primary" id="matchmake-1v1">⚔️ Find Match</button>
+              <button class="btn btn-success" id="solo-practice">🎯 Practice</button>
+              <button class="btn btn-warning" id="exit-practice" style="display: none;">🚪 Exit Practice</button>
+              <button class="btn btn-secondary" id="resume-game" style="display: none;">▶️ Resume</button>
             </div>
           </div>
               
-              <div class="settings-section">
-                <h3>🌐 Server List</h3>
+              <div class="settings-section" id="server-section">
+                <h3>🌐 Server</h3>
                 <div class="server-list">
-                  <div class="server-header">
-                    <span class="server-name">Server Name</span>
-                    <span class="server-ping">Ping</span>
-                    <span class="server-players">Players</span>
-                    <span class="server-status">Status</span>
-                  </div>
                   <div class="server-item server-selected" data-server="railway-main">
                     <span class="server-name">🚂 Railway Main Server</span>
                     <span class="server-ping">--ms</span>
                     <span class="server-players">--/--</span>
                     <span class="server-status">🔄</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="settings-section">
-                <h3>📊 Match Info</h3>
-                <div class="info-grid">
-                  <div class="info-item">
-                    <span class="info-label">Map:</span>
-                    <span class="info-value">Arena_01</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="info-label">Mode:</span>
-                    <span class="info-value">1v1 Deathmatch</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="info-label">Time:</span>
-                    <span class="info-value">∞ Unlimited</span>
                   </div>
                 </div>
               </div>
@@ -452,15 +428,25 @@ export class SettingsMenu {
         transform: translateY(-1px);
       }
       
-      .btn-success {
-        background: #10b981;
-        color: #fff;
-      }
-      
-      .btn-success:hover {
-        background: #059669;
-        transform: translateY(-1px);
-      }
+        .btn-success {
+          background: #10b981;
+          color: #fff;
+        }
+        
+        .btn-success:hover {
+          background: #059669;
+          transform: translateY(-1px);
+        }
+        
+        .btn-warning {
+          background: #f59e0b;
+          color: #fff;
+        }
+        
+        .btn-warning:hover {
+          background: #d97706;
+          transform: translateY(-1px);
+        }
       
       .debug-section {
         margin-bottom: 25px;
@@ -852,6 +838,12 @@ export class SettingsMenu {
       console.log('🎯 Solo practice requested')
       this.onStartPractice?.()
     })
+
+    const exitPracticeBtn = this.settingsElement.querySelector('#exit-practice') as HTMLButtonElement
+    exitPracticeBtn?.addEventListener('click', () => {
+      console.log('🚪 Exit practice requested')
+      this.onExitPractice?.()
+    })
     
     const resumeBtn = this.settingsElement.querySelector('#resume-game') as HTMLButtonElement
     resumeBtn?.addEventListener('click', () => this.hide())
@@ -1027,6 +1019,10 @@ export class SettingsMenu {
     this.onStartPractice = callback
   }
 
+  onExitPracticeRequested(callback: () => void): void {
+    this.onExitPractice = callback
+  }
+
   onShouldCloseCheck(callback: () => boolean): void {
     this.onShouldClose = callback
   }
@@ -1092,21 +1088,34 @@ export class SettingsMenu {
     })
   }
 
-  updateGameState(gameStarted: boolean): void {
+  updateGameState(gameStarted: boolean, gameMode?: 'multiplayer' | 'practice'): void {
     const matchmakeBtn = this.settingsElement.querySelector('#matchmake-1v1') as HTMLButtonElement
+    const practiceBtn = this.settingsElement.querySelector('#solo-practice') as HTMLButtonElement
+    const exitPracticeBtn = this.settingsElement.querySelector('#exit-practice') as HTMLButtonElement
     const resumeBtn = this.settingsElement.querySelector('#resume-game') as HTMLButtonElement
-    const restartBtn = this.settingsElement.querySelector('#restart-match') as HTMLButtonElement
+    const serverSection = this.settingsElement.querySelector('#server-section') as HTMLElement
     
-    if (gameStarted) {
-      // Game is running - show resume/restart buttons, hide matchmake button
+    if (gameStarted && gameMode === 'practice') {
+      // Practice mode - show exit practice button, hide others
       if (matchmakeBtn) matchmakeBtn.style.display = 'none'
+      if (practiceBtn) practiceBtn.style.display = 'none'
+      if (exitPracticeBtn) exitPracticeBtn.style.display = 'inline-block'
       if (resumeBtn) resumeBtn.style.display = 'inline-block'
-      if (restartBtn) restartBtn.style.display = 'inline-block'
+      if (serverSection) serverSection.style.display = 'none'
+    } else if (gameStarted) {
+      // Multiplayer mode - show resume button, hide others
+      if (matchmakeBtn) matchmakeBtn.style.display = 'none'
+      if (practiceBtn) practiceBtn.style.display = 'none'
+      if (exitPracticeBtn) exitPracticeBtn.style.display = 'none'
+      if (resumeBtn) resumeBtn.style.display = 'inline-block'
+      if (serverSection) serverSection.style.display = 'block'
     } else {
-      // Game not started - show matchmake button, hide resume/restart buttons
+      // Main menu - show main buttons, hide game buttons
       if (matchmakeBtn) matchmakeBtn.style.display = 'inline-block'
+      if (practiceBtn) practiceBtn.style.display = 'inline-block'
+      if (exitPracticeBtn) exitPracticeBtn.style.display = 'none'
       if (resumeBtn) resumeBtn.style.display = 'none'
-      if (restartBtn) restartBtn.style.display = 'none'
+      if (serverSection) serverSection.style.display = 'block'
     }
   }
 
