@@ -758,14 +758,20 @@ export class GameEngine {
       }
     })
     
-    // Set up position update callback (Python script style - immediate sync)
+    // Set up position update callback (Python script style - simple and direct)
+    let lastPositionSent = 0
+    const positionSendRate = 100 // 10 times per second like Python script
+    
     this.controls.setPositionCallback((position, rotation) => {
       if (this.gameClient.connected && this.gameState === 'playing') {
-        console.log(`📤 Sending position update:`, { x: position.x, y: position.y, z: position.z })
-        this.gameClient.sendPlayerPosition(
-          { x: position.x, y: position.y, z: position.z },
-          { x: rotation.x, y: rotation.y, z: rotation.z }
-        )
+        const now = Date.now()
+        if (now - lastPositionSent >= positionSendRate) {
+          lastPositionSent = now
+          this.gameClient.sendPlayerPosition(
+            { x: position.x, y: position.y, z: position.z },
+            { x: rotation.x, y: rotation.y, z: rotation.z }
+          )
+        }
       }
     })
     

@@ -89,27 +89,16 @@ export class NetworkedPlayerManager {
       return
     }
 
-    console.log(`📍 Updating player ${playerId} position: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`)
-
-    // Store the server position for interpolation
+    // Python script style - direct position update, no interpolation
+    player.model.position.set(position.x, position.y, position.z)
+    player.model.rotation.y = rotation.y // Only Y rotation for player facing direction
+    
+    // Update stored data
     player.lastPosition = { ...position }
     player.lastRotation = { ...rotation }
     player.lastUpdate = Date.now()
-
-    // Immediately update position (we can add interpolation later)
-    player.model.position.set(position.x, position.y, position.z)
-    player.model.rotation.set(rotation.x, rotation.y, rotation.z)
     
-    // Force the model to be visible and check if it's in the scene
-    player.model.visible = true
-    console.log(`👁️ Player ${playerId} model visibility:`, player.model.visible)
-    console.log(`🎬 Player ${playerId} model in scene:`, this.scene.children.includes(player.model))
-    console.log(`📏 Player ${playerId} model scale:`, player.model.scale)
-    console.log(`🎯 Player ${playerId} model world position:`, player.model.getWorldPosition(new THREE.Vector3()))
-    
-    console.log(`✅ Player ${playerId} model updated in scene`)
-    
-    console.log(`🔄 Updated player ${playerId} position to (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`)
+    console.log(`🔄 Player ${playerId} moved to (${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)})`)
   }
 
   showPlayerShot(playerId: number): void {

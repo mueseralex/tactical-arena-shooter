@@ -47,10 +47,8 @@ export class FirstPersonControls {
   // Shooting callback
   private onShoot?: (shootData: { origin: THREE.Vector3, direction: THREE.Vector3, maxRange: number }) => void
   
-  // Position update callback (like Python script's real-time position sync)
+  // Simple position callback (Python script style)
   private onPositionUpdate?: (position: THREE.Vector3, rotation: THREE.Vector3) => void
-  private lastPositionSent = 0
-  private positionSendRate = 50 // Send every 50ms max
   
   // Audio properties
   private walkSound?: HTMLAudioElement
@@ -553,11 +551,8 @@ export class FirstPersonControls {
       Math.min(arenaHeight / 2 - wallOffset, this.camera.position.z)
     )
     
-    // Send position update if player actually moved (after all collision detection)
-    const positionChanged = oldPosition.distanceTo(this.camera.position) > 0.01
-    if (positionChanged) {
-      this.sendPositionUpdate()
-    }
+    // Send position update every frame when moving (Python script style)
+    this.sendPositionUpdate()
   }
 
   // Getters for other systems to access camera state
@@ -612,15 +607,9 @@ export class FirstPersonControls {
     this.onPositionUpdate = callback
   }
   
-  // Send position update (like Python script's immediate position sync)
+  // Send position update (Python script style - simple and direct)
   private sendPositionUpdate(): void {
-    const now = Date.now()
-    if (now - this.lastPositionSent < this.positionSendRate) {
-      return // Throttle to prevent spam
-    }
-    
     if (this.onPositionUpdate) {
-      this.lastPositionSent = now
       this.onPositionUpdate(this.camera.position, this.camera.rotation)
     }
   }

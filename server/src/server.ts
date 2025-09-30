@@ -38,44 +38,7 @@ setInterval(() => {
 }, 300000) // Run every 5 minutes
 
 // Position synchronization interval (like Python script's broadcast loop)
-setInterval(() => {
-  // Broadcast all player positions to keep everyone synchronized
-  for (const [matchId, match] of activeMatches.entries()) {
-    if (match.status === 'active') {
-      // Gather all positions for this match
-      const matchPositions: any[] = []
-      
-      match.players.forEach((playerId: number) => {
-        const player = connectedPlayers.get(playerId)
-        if (player && player.isAlive) {
-          matchPositions.push({
-            playerId: playerId,
-            position: player.position,
-            rotation: player.rotation || { x: 0, y: 0, z: 0 },
-            health: player.health
-          })
-        }
-      })
-      
-      // Send positions to all players in match
-      match.players.forEach((playerId: number) => {
-        const player = connectedPlayers.get(playerId)
-        if (player && player.ws.readyState === player.ws.OPEN) {
-          matchPositions.forEach((pos) => {
-            if (pos.playerId !== playerId) {
-              player.ws.send(JSON.stringify({
-                type: 'player_position_update',
-                playerId: pos.playerId,
-                position: pos.position,
-                rotation: pos.rotation
-              }))
-            }
-          })
-        }
-      })
-    }
-  }
-}, 200) // Every 200ms for smooth sync
+// Removed periodic sync - using Python script style message-based sync only
 
 // Spawn points for 1v1 (behind cover boxes for protection)
 const SPAWN_POINTS = {
@@ -177,19 +140,15 @@ function handlePlayerMessage(playerId: number, message: any) {
         player.rotation = message.rotation || { x: 0, y: 0, z: 0 }
         player.lastActivity = Date.now()
         
-        console.log(`📍 Server received position from player ${playerId}:`, player.position)
-        
-        // Broadcast to other players in the same match only
+        // Python script style - simple broadcast to match players
         if (player.matchId) {
           const match = activeMatches.get(player.matchId)
           if (match) {
-            console.log(`📡 Broadcasting position to ${match.players.length - 1} other players in match ${player.matchId}`)
-            // Send to all other players in match (like Python's broadcast)
+            // Send to all other players in match (Python script approach)
             match.players.forEach((otherPlayerId: number) => {
               if (otherPlayerId !== playerId) {
                 const otherPlayer = connectedPlayers.get(otherPlayerId)
                 if (otherPlayer && otherPlayer.ws.readyState === otherPlayer.ws.OPEN) {
-                  console.log(`📤 Sending position update to player ${otherPlayerId}`)
                   otherPlayer.ws.send(JSON.stringify({
                     type: 'player_position_update',
                     playerId: playerId,
@@ -199,11 +158,7 @@ function handlePlayerMessage(playerId: number, message: any) {
                 }
               }
             })
-          } else {
-            console.log(`⚠️ Player ${playerId} has matchId ${player.matchId} but match not found`)
           }
-        } else {
-          console.log(`⚠️ Player ${playerId} not in a match, not broadcasting position`)
         }
       }
       break
