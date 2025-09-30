@@ -766,15 +766,25 @@ export class GameEngine {
     const positionSendRate = 100 // 10 times per second like Python script
     
     this.controls.setPositionCallback((position, rotation) => {
+      console.log(`🚨 POSITION CALLBACK TRIGGERED:`, position, rotation)
+      console.log(`🚨 Game client connected:`, this.gameClient.connected)
+      console.log(`🚨 Game state:`, this.gameState)
+      
       if (this.gameClient.connected && this.gameState === 'playing') {
         const now = Date.now()
+        console.log(`🚨 Time check: now=${now}, lastSent=${lastPositionSent}, rate=${positionSendRate}`)
         if (now - lastPositionSent >= positionSendRate) {
           lastPositionSent = now
+          console.log(`🚨 SENDING TO SERVER:`, { x: position.x, y: position.y, z: position.z })
           this.gameClient.sendPlayerPosition(
             { x: position.x, y: position.y, z: position.z },
             { x: rotation.x, y: rotation.y, z: rotation.z }
           )
+        } else {
+          console.log(`🚨 THROTTLED: Too soon to send`)
         }
+      } else {
+        console.warn(`⚠️ Not sending: connected=${this.gameClient.connected}, state=${this.gameState}`)
       }
     })
     

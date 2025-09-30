@@ -610,7 +610,10 @@ export class FirstPersonControls {
   // Send position update (Python script style - simple and direct)
   private sendPositionUpdate(): void {
     if (this.onPositionUpdate) {
+      console.log(`🚨 SENDING POSITION:`, this.camera.position, this.camera.rotation)
       this.onPositionUpdate(this.camera.position, this.camera.rotation)
+    } else {
+      console.warn(`⚠️ No position update callback set!`)
     }
   }
 
