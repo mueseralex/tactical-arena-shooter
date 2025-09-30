@@ -15,6 +15,7 @@ export class SettingsMenu {
   private onViewmodelChange?: (enabled: boolean) => void
   private onStartGame?: () => void
   private onShouldClose?: () => boolean
+  private onRequestServerInfo?: () => void
   
   // Debug logging
   private debugLogElement?: HTMLElement
@@ -968,6 +969,11 @@ export class SettingsMenu {
     // Always show Game tab when opening menu
     this.switchTab('game')
     
+    // Request fresh server info when menu is shown
+    if (this.onRequestServerInfo) {
+      this.onRequestServerInfo()
+    }
+    
     // Release pointer lock when showing menu
     if (document.pointerLockElement) {
       document.exitPointerLock()
@@ -1025,6 +1031,59 @@ export class SettingsMenu {
 
   onShouldCloseCheck(callback: () => boolean): void {
     this.onShouldClose = callback
+  }
+
+  onServerInfoRequested(callback: () => void): void {
+    this.onRequestServerInfo = callback
+  }
+
+  updateServerList(serverData: any): void {
+    console.log('📊 Updating server list with real data:', serverData)
+    
+    // Update the Railway Main Server entry
+    const serverItems = document.querySelectorAll('.server-item')
+    if (serverItems.length > 0) {
+      const mainServer = serverItems[0] as HTMLElement
+      
+      // Update player count
+      const playerCountElement = mainServer.querySelector('.server-players')
+      if (playerCountElement) {
+        playerCountElement.textContent = `${serverData.playerCount}/${serverData.maxPlayers}`
+      }
+      
+      // Update ping
+      const pingElement = mainServer.querySelector('.server-ping')
+      if (pingElement) {
+        pingElement.textContent = `${serverData.ping}ms`
+      }
+      
+      // Update status indicator
+      const statusElement = mainServer.querySelector('.server-status')
+      if (statusElement) {
+        statusElement.textContent = serverData.status === 'online' ? '🟢' : '🔴'
+      }
+      
+      // Update match info when server is selected
+      if (mainServer.classList.contains('selected')) {
+        this.updateMatchInfo(serverData)
+      }
+    }
+  }
+
+  private updateMatchInfo(serverData: any): void {
+    const matchInfoItems = [
+      { id: 'players-online', value: `${serverData.playerCount}` },
+      { id: 'players-in-queue', value: `${serverData.playersInQueue}` },
+      { id: 'active-matches', value: `${serverData.activeMatches}` },
+      { id: 'server-region', value: serverData.region }
+    ]
+    
+    matchInfoItems.forEach(item => {
+      const element = document.getElementById(item.id)
+      if (element) {
+        element.textContent = item.value
+      }
+    })
   }
 
   updateGameState(gameStarted: boolean): void {

@@ -31,8 +31,10 @@ export class NetworkedPlayerManager {
     
     // Create player model
     const playerModel = new PlayerModel('red') // Enemy player
-    playerModel.position.set(0, 0, 0) // Will be updated from server
+    playerModel.position.set(0, 1.8, 0) // Start at ground level, will be updated from server
     this.scene.add(playerModel)
+    
+    console.log(`✅ Networked player ${playerId} model added to scene at position (0, 1.8, 0)`)
 
     // Create networked player data
     const networkedPlayer: NetworkedPlayer = {
@@ -79,6 +81,8 @@ export class NetworkedPlayerManager {
     // Immediately update position (we can add interpolation later)
     player.model.position.set(position.x, position.y, position.z)
     player.model.rotation.set(rotation.x, rotation.y, rotation.z)
+    
+    console.log(`🔄 Updated player ${playerId} position to (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`)
   }
 
   showPlayerShot(playerId: number): void {

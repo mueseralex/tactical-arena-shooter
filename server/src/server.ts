@@ -141,6 +141,11 @@ function handlePlayerMessage(playerId: number, message: any) {
       handleMatchmakingRequest(playerId, message.gameMode || '1v1')
       break
       
+    case 'request_server_info':
+      // Handle server info request
+      handleServerInfoRequest(playerId)
+      break
+      
     default:
       console.log(`❓ Unknown message type from player ${playerId}:`, message.type)
   }
@@ -583,6 +588,34 @@ function endMatch(matchId: string) {
   
   // Remove match from active matches
   activeMatches.delete(matchId)
+}
+
+function handleServerInfoRequest(playerId: number) {
+  const player = connectedPlayers.get(playerId)
+  if (!player) return
+  
+  // Calculate server statistics
+  const totalPlayers = connectedPlayers.size
+  const playersInQueue = matchmakingQueue.length
+  const activeMatchCount = activeMatches.size
+  const playersInMatches = activeMatchCount * 2 // Assuming 1v1 matches
+  
+  // Send server info
+  player.ws.send(JSON.stringify({
+    type: 'server_info',
+    serverName: 'Railway Main Server',
+    playerCount: totalPlayers,
+    maxPlayers: 100,
+    playersInQueue: playersInQueue,
+    activeMatches: activeMatchCount,
+    playersInMatches: playersInMatches,
+    ping: 25, // Approximate ping for Railway
+    region: 'US-East',
+    gameMode: '1v1 Arena',
+    status: 'online'
+  }))
+  
+  console.log(`📊 Sent server info to player ${playerId}: ${totalPlayers} players online`)
 }
 
 function broadcast(message: any, excludePlayerId?: number) {

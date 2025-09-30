@@ -20,6 +20,7 @@ export class GameClient {
   private onMatchEnd?: (matchData: any) => void
   private onPlayerHit?: (hitData: any) => void
   private onPlayerDeath?: (deathData: any) => void
+  private onServerInfo?: (serverData: any) => void
 
   constructor() {
     console.log('🌐 GameClient initialized')
@@ -150,6 +151,11 @@ export class GameClient {
         this.onPlayerDeath?.(message)
         break
         
+      case 'server_info':
+        console.log(`📊 Server info received: ${message.playerCount} players online`)
+        this.onServerInfo?.(message)
+        break
+        
       case 'pong':
         // Handle ping response for latency measurement
         if (message.timestamp) {
@@ -203,6 +209,13 @@ export class GameClient {
     })
   }
 
+  requestServerInfo(): void {
+    console.log('📊 Requesting server info...')
+    this.sendMessage({
+      type: 'request_server_info'
+    })
+  }
+
   sendPing(): void {
     this.sendMessage({
       type: 'ping',
@@ -253,6 +266,10 @@ export class GameClient {
 
   onPlayerDeathCallback(callback: (deathData: any) => void): void {
     this.onPlayerDeath = callback
+  }
+
+  onServerInfoCallback(callback: (serverData: any) => void): void {
+    this.onServerInfo = callback
   }
 
   // Getters

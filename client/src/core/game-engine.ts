@@ -128,10 +128,8 @@ export class GameEngine {
   }
 
   private initDemoPlayer(): void {
-    this.demoPlayerModel = new PlayerModel(this.scene, 'blue')
-    this.demoPlayerModel.setPosition(0, 0, 0) // Center of arena
-    // No animations - static model for scale reference
-    console.log('✅ Demo player model initialized')
+    // Demo player model removed - no longer needed for competitive play
+    console.log('✅ Demo player model skipped - arena is now clean')
   }
 
   private initControls(): void {
@@ -174,6 +172,12 @@ export class GameEngine {
     this.settingsMenu.onShouldCloseCheck(() => {
       // Only allow closing if we're in playing state
       return this.gameState === 'playing'
+    })
+
+    this.settingsMenu.onServerInfoRequested(() => {
+      if (this.gameClient && this.gameClient.connected) {
+        this.gameClient.requestServerInfo()
+      }
     })
     
     // Don't apply initial settings until controls are ready
@@ -240,10 +244,14 @@ export class GameEngine {
     
     this.gameClient.onMatchFoundCallback((matchData) => {
       console.log('⚔️ Match found! Starting game...', matchData)
-      // Start the actual game when match is found
-      setTimeout(() => {
+      
+      // Hide the menu immediately
+      this.settingsMenu.hide()
+      
+      // Show match start countdown
+      this.showMatchStartCountdown(() => {
         this.startGame()
-      }, 1000) // Small delay for dramatic effect
+      })
     })
 
     // Handle competitive game events
@@ -265,6 +273,10 @@ export class GameEngine {
 
     this.gameClient.onPlayerDeathCallback((deathData) => {
       this.handlePlayerDeath(deathData)
+    })
+
+    this.gameClient.onServerInfoCallback((serverData) => {
+      this.handleServerInfo(serverData)
     })
     
     console.log('✅ Networking initialized')
@@ -625,7 +637,7 @@ export class GameEngine {
 
   // Competitive game event handlers
   private handleRoundStart(roundData: any): void {
-    console.log(`🎯 Round ${roundData.round} started!`)
+    console.log(`🎯 Round ${roundData.round} starting!`)
     
     // Update match state
     this.currentRound = roundData.round
@@ -653,11 +665,12 @@ export class GameEngine {
       console.log(`📍 Spawned at: ${roundData.spawnPosition.x}, ${roundData.spawnPosition.y}, ${roundData.spawnPosition.z}`)
     }
     
-    // Start round timer
-    this.startRoundTimer()
-    
-    // Show round start message
-    this.showMatchStatus(`Round ${roundData.round} - Fight!`, 3000)
+    // Show round countdown before starting
+    this.showRoundCountdown(roundData.round, () => {
+      // Start round timer after countdown
+      this.startRoundTimer()
+      console.log(`🎯 Round ${roundData.round} started!`)
+    })
   }
 
   private handleRoundEnd(roundData: any): void {
@@ -673,13 +686,17 @@ export class GameEngine {
       this.roundTimer = null
     }
     
-    // Show round result
+    // Determine if we won this round
     const isWinner = roundData.winner === this.gameClient.playerID
-    const message = roundData.winner === null ? 
-      'Round Tied!' : 
-      (isWinner ? 'You Won the Round!' : 'You Lost the Round!')
+    const isTie = roundData.winner === null
     
-    this.showMatchStatus(message, 5000)
+    // Show round result overlay
+    if (!isTie) {
+      this.showRoundResult(isWinner, roundData.round)
+    } else {
+      // Show tie message in match status
+      this.showMatchStatus('Round Tied!', 3000)
+    }
   }
 
   private handleMatchEnd(matchData: any): void {
@@ -851,6 +868,133 @@ export class GameEngine {
     }
   }
 
+  private handleServerInfo(serverData: any): void {
+    console.log('📊 Received server info:', serverData)
+    
+    // Update the settings menu server list
+    this.settingsMenu.updateServerList(serverData)
+  }
+
+  private showMatchStartCountdown(onComplete: () => void): void {
+    console.log('⏱️ Starting match countdown...')
+    
+    const overlay = document.getElementById('countdown-overlay')
+    const textElement = document.getElementById('countdown-text')
+    const numberElement = document.getElementById('countdown-number')
+    
+    if (!overlay || !textElement || !numberElement) {
+      console.warn('⚠️ Countdown elements not found, starting game immediately')
+      onComplete()
+      return
+    }
+    
+    // Show overlay
+    overlay.style.display = 'flex'
+    textElement.textContent = 'Match Starting...'
+    
+    let count = 3
+    
+    const updateCountdown = () => {
+      if (count > 0) {
+        numberElement.textContent = count.toString()
+        numberElement.className = '' // Reset classes
+        // Trigger animation by forcing reflow
+        numberElement.offsetHeight
+        numberElement.style.animation = 'none'
+        numberElement.offsetHeight
+        numberElement.style.animation = 'countdownPulse 1s ease-in-out'
+        
+        count--
+        setTimeout(updateCountdown, 1000)
+      } else {
+        // Show "GO!" message
+        numberElement.textContent = 'GO!'
+        numberElement.classList.add('countdown-go')
+        
+        setTimeout(() => {
+          overlay.style.display = 'none'
+          onComplete()
+        }, 800)
+      }
+    }
+    
+    updateCountdown()
+  }
+
+  private showRoundCountdown(roundNumber: number, onComplete: () => void): void {
+    console.log(`⏱️ Starting round ${roundNumber} countdown...`)
+    
+    const overlay = document.getElementById('countdown-overlay')
+    const textElement = document.getElementById('countdown-text')
+    const numberElement = document.getElementById('countdown-number')
+    
+    if (!overlay || !textElement || !numberElement) {
+      console.warn('⚠️ Countdown elements not found, starting round immediately')
+      onComplete()
+      return
+    }
+    
+    // Show overlay
+    overlay.style.display = 'flex'
+    textElement.textContent = `Round ${roundNumber}`
+    
+    let count = 3
+    
+    const updateCountdown = () => {
+      if (count > 0) {
+        numberElement.textContent = count.toString()
+        numberElement.className = '' // Reset classes
+        // Trigger animation by forcing reflow
+        numberElement.offsetHeight
+        numberElement.style.animation = 'none'
+        numberElement.offsetHeight
+        numberElement.style.animation = 'countdownPulse 1s ease-in-out'
+        
+        count--
+        setTimeout(updateCountdown, 1000)
+      } else {
+        // Show "FIGHT!" message
+        numberElement.textContent = 'FIGHT!'
+        numberElement.classList.add('countdown-go')
+        
+        setTimeout(() => {
+          overlay.style.display = 'none'
+          onComplete()
+        }, 800)
+      }
+    }
+    
+    updateCountdown()
+  }
+
+  private showRoundResult(won: boolean, roundNumber: number): void {
+    console.log(`🏁 Showing round ${roundNumber} result: ${won ? 'WON' : 'LOST'}`)
+    
+    const overlay = document.getElementById('countdown-overlay')
+    const textElement = document.getElementById('countdown-text')
+    const numberElement = document.getElementById('countdown-number')
+    
+    if (!overlay || !textElement || !numberElement) {
+      console.warn('⚠️ Countdown elements not found')
+      return
+    }
+    
+    // Show overlay
+    overlay.style.display = 'flex'
+    textElement.textContent = `Round ${roundNumber}`
+    textElement.className = won ? 'countdown-round-won' : 'countdown-round-lost'
+    
+    numberElement.textContent = won ? 'WON!' : 'LOST!'
+    numberElement.className = won ? 'countdown-round-won' : 'countdown-round-lost'
+    
+    // Hide after 3 seconds
+    setTimeout(() => {
+      overlay.style.display = 'none'
+      textElement.className = '' // Reset classes
+      numberElement.className = ''
+    }, 3000)
+  }
+
   // Cleanup method for proper disposal
   dispose(): void {
     this.stop()
@@ -883,10 +1027,7 @@ export class GameEngine {
       this.arena.dispose()
     }
     
-    // Dispose of demo player model
-    if (this.demoPlayerModel) {
-      this.demoPlayerModel.dispose()
-    }
+    // Demo player model no longer used
     
     // Dispose of settings menu
     if (this.settingsMenu) {

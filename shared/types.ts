@@ -33,6 +33,7 @@ export type ClientMessage =
   | PlayerShootMessage
   | PlayerReloadMessage
   | RequestMatchmakingMessage
+  | RequestServerInfoMessage
 
 export type ServerMessage = 
   | PongMessage
@@ -48,6 +49,7 @@ export type ServerMessage =
   | MatchEndMessage
   | PlayerHitMessage
   | PlayerDeathMessage
+  | ServerInfoMessage
 
 // Client to Server messages
 export interface PingMessage {
@@ -76,6 +78,10 @@ export interface PlayerReloadMessage {
 export interface RequestMatchmakingMessage {
   type: 'request_matchmaking'
   gameMode: '1v1' | '2v2' | '5v5'
+}
+
+export interface RequestServerInfoMessage {
+  type: 'request_server_info'
 }
 
 // Server to Client messages
@@ -166,6 +172,20 @@ export interface PlayerDeathMessage {
   killerId: number
   victimId: number
   isHeadshot: boolean
+}
+
+export interface ServerInfoMessage {
+  type: 'server_info'
+  serverName: string
+  playerCount: number
+  maxPlayers: number
+  playersInQueue: number
+  activeMatches: number
+  playersInMatches: number
+  ping: number
+  region: string
+  gameMode: string
+  status: 'online' | 'offline' | 'maintenance'
 }
 
 // Game constants
