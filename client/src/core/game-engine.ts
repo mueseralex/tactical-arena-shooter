@@ -741,30 +741,7 @@ export class GameEngine {
     console.log('🔗 Connecting controls to networking...')
     
     // Send position updates to server periodically
-    let lastPositionSend = 0
-    const positionSendRate = 1000 / 20 // 20 Hz (every 50ms)
-    
-    const sendPositionUpdate = () => {
-      if (!this.gameClient.connected || this.gameState !== 'playing') {
-        return
-      }
-      
-      const now = Date.now()
-      if (now - lastPositionSend < positionSendRate) {
-        return
-      }
-      
-      lastPositionSend = now
-      
-      // Get camera position and rotation
-      const position = this.camera.position
-      const rotation = this.camera.rotation
-      
-      this.gameClient.sendPlayerPosition(
-        { x: position.x, y: position.y, z: position.z },
-        { x: rotation.x, y: rotation.y, z: rotation.z }
-      )
-    }
+    // Position updates now handled in real-time by controls (Python script style)
     
     // Set up shooting callback for proper hit detection
     this.controls.setShootCallback((shootData) => {
@@ -780,15 +757,15 @@ export class GameEngine {
       }
     })
     
-    // Add position sending to the game loop
-    this.positionUpdateInterval = setInterval(() => {
-      try {
-        sendPositionUpdate()
-        console.log('📍 Position update sent')
-      } catch (error) {
-        console.error('❌ Failed to send position update:', error)
+    // Set up position update callback (Python script style - immediate sync)
+    this.controls.setPositionCallback((position, rotation) => {
+      if (this.gameClient.connected && this.gameState === 'playing') {
+        this.gameClient.sendPlayerPosition(
+          { x: position.x, y: position.y, z: position.z },
+          { x: rotation.x, y: rotation.y, z: rotation.z }
+        )
       }
-    }, positionSendRate)
+    })
     
     console.log('✅ Controls connected to networking')
   }

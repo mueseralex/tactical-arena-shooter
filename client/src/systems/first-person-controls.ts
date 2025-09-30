@@ -47,6 +47,9 @@ export class FirstPersonControls {
   // Shooting callback
   private onShoot?: (shootData: { origin: THREE.Vector3, direction: THREE.Vector3, maxRange: number }) => void
   
+  // Position update callback (like Python script's real-time position sync)
+  private onPositionUpdate?: (position: THREE.Vector3, rotation: THREE.Vector3) => void
+  
   // Audio properties
   private walkSound?: HTMLAudioElement
   private jumpSound?: HTMLAudioElement
@@ -482,6 +485,11 @@ export class FirstPersonControls {
     // Update bullet holes (fade and cleanup)
     this.collisionSystem.updateBulletHoles()
     
+    // Send position update if player moved (Python script style real-time sync)
+    if (hasMovement || Math.abs(this.velocity.y) > 0.01) {
+      this.sendPositionUpdate()
+    }
+    
     // Apply gravity
     this.velocity.y += this.gravity * deltaTime
     
@@ -591,6 +599,18 @@ export class FirstPersonControls {
   // Set shooting callback for networking
   setShootCallback(callback: (shootData: { origin: THREE.Vector3, direction: THREE.Vector3, maxRange: number }) => void): void {
     this.onShoot = callback
+  }
+  
+  // Set position update callback for networking (Python script style)
+  setPositionCallback(callback: (position: THREE.Vector3, rotation: THREE.Vector3) => void): void {
+    this.onPositionUpdate = callback
+  }
+  
+  // Send position update (like Python script's immediate position sync)
+  private sendPositionUpdate(): void {
+    if (this.onPositionUpdate) {
+      this.onPositionUpdate(this.camera.position, this.camera.rotation)
+    }
   }
 
   // Cleanup method
