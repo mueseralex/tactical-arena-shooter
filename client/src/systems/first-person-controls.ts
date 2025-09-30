@@ -18,7 +18,8 @@ export class FirstPersonControls {
   // Movement properties
   private velocity = new THREE.Vector3()
   private direction = new THREE.Vector3()
-  private moveSpeed = 4.2 // Increased slightly for better flow
+  private moveSpeed = 4.2 // Base movement speed
+  private crouchMoveSpeed = 2.5 // Movement speed while crouched (60% of base)
   private baseJumpHeight = 5.0 // Base jump height
   private currentJumpHeight = 5.0 // Current jump height (affected by fatigue)
   private gravity = -25.0 // Increased from -20.0 for faster fall
@@ -420,9 +421,10 @@ export class FirstPersonControls {
     horizontalMatrix.makeRotationY(this.euler.y)
     this.direction.transformDirection(horizontalMatrix)
     
-    // Apply horizontal movement
-    this.velocity.x = this.direction.x * this.moveSpeed
-    this.velocity.z = this.direction.z * this.moveSpeed
+    // Apply horizontal movement with speed based on crouch state
+    const currentMoveSpeed = this.isCrouching ? this.crouchMoveSpeed : this.moveSpeed
+    this.velocity.x = this.direction.x * currentMoveSpeed
+    this.velocity.z = this.direction.z * currentMoveSpeed
     
     // Calculate new position with velocity
     const newPosition = this.camera.position.clone()
