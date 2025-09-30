@@ -56,6 +56,12 @@ export class CollisionSystem {
   getValidPosition(currentPosition: THREE.Vector3, newPosition: THREE.Vector3): THREE.Vector3 {
     const radius = this.COLLISION_DISTANCE
     
+    // Check if movement is significant enough to process (prevents micro-stutters)
+    const movementDistance = currentPosition.distanceTo(newPosition)
+    if (movementDistance < 0.001) {
+      return currentPosition.clone()
+    }
+    
     // If new position is valid, return it
     if (!this.checkCollision(newPosition, radius)) {
       return newPosition.clone()
@@ -64,57 +70,75 @@ export class CollisionSystem {
     // Try to slide along walls by testing individual axis movements
     const validPosition = currentPosition.clone()
     
-    // Test horizontal movement first (X and Z)
-    const testX = new THREE.Vector3(newPosition.x, currentPosition.y, currentPosition.z)
-    if (!this.checkCollision(testX, radius)) {
-      validPosition.x = newPosition.x
-    }
+    // Test horizontal movement first (X and Z) - only if there's actual horizontal movement
+    const horizontalMovement = Math.abs(newPosition.x - currentPosition.x) + Math.abs(newPosition.z - currentPosition.z)
     
-    const testZ = new THREE.Vector3(validPosition.x, currentPosition.y, newPosition.z)
-    if (!this.checkCollision(testZ, radius)) {
-      validPosition.z = newPosition.z
-    }
-    
-    // Test Y movement (jumping/falling) only if horizontal position is valid
-    const testY = new THREE.Vector3(validPosition.x, newPosition.y, validPosition.z)
-    if (!this.checkCollision(testY, radius)) {
-      validPosition.y = newPosition.y
-    } else if (newPosition.y < currentPosition.y) {
-      // Always allow falling/crouching
-      validPosition.y = newPosition.y
-    }
-    
-    // Prevent getting inside objects by checking if we're too close to any collision object
-    for (const obj of this.collisionObjects) {
-      const objBox = new THREE.Box3().setFromObject(obj)
-      const playerBox = new THREE.Box3().setFromCenterAndSize(
-        validPosition,
-        new THREE.Vector3(radius * 2, 3.6, radius * 2) // Player height
-      )
+    if (horizontalMovement > 0.001) {
+      const testX = new THREE.Vector3(newPosition.x, currentPosition.y, currentPosition.z)
+      if (!this.checkCollision(testX, radius)) {
+        validPosition.x = newPosition.x
+      }
       
-      // If player would be inside the object, push them out
-      if (objBox.intersectsBox(playerBox)) {
-        const objCenter = objBox.getCenter(new THREE.Vector3())
-        const playerCenter = validPosition.clone()
-        
-        // Calculate push direction (away from object center)
-        const pushDirection = playerCenter.clone().sub(objCenter).normalize()
-        
-        // Only push horizontally, don't affect Y position unless falling
-        if (Math.abs(pushDirection.x) > Math.abs(pushDirection.z)) {
-          validPosition.x = objCenter.x + (objBox.max.x - objBox.min.x) / 2 * Math.sign(pushDirection.x) + radius * Math.sign(pushDirection.x)
-        } else {
-          validPosition.z = objCenter.z + (objBox.max.z - objBox.min.z) / 2 * Math.sign(pushDirection.z) + radius * Math.sign(pushDirection.z)
-        }
-        
-        // If player is above the object and falling, let them land on top
-        if (validPosition.y > objBox.max.y && newPosition.y <= currentPosition.y) {
-          validPosition.y = Math.max(objBox.max.y + 0.1, newPosition.y)
-        }
+      const testZ = new THREE.Vector3(validPosition.x, currentPosition.y, newPosition.z)
+      if (!this.checkCollision(testZ, radius)) {
+        validPosition.z = newPosition.z
       }
     }
     
+    // Test Y movement (jumping/falling) - only if there's actual vertical movement
+    if (Math.abs(newPosition.y - currentPosition.y) > 0.001) {
+      const testY = new THREE.Vector3(validPosition.x, newPosition.y, validPosition.z)
+      if (!this.checkCollision(testY, radius)) {
+        validPosition.y = newPosition.y
+      } else if (newPosition.y < currentPosition.y) {
+        // Always allow falling/crouching
+        validPosition.y = newPosition.y
+      }
+    }
+    
+    // Only do expensive push-out logic if we're actually moving and close to objects
+    if (horizontalMovement > 0.001) {
+      this.preventClipping(validPosition, radius)
+    }
+    
     return validPosition
+  }
+
+  // Separate method for anti-clipping logic to reduce stuttering
+  private preventClipping(position: THREE.Vector3, radius: number): void {
+    for (const obj of this.collisionObjects) {
+      const objBox = new THREE.Box3().setFromObject(obj)
+      const playerBox = new THREE.Box3().setFromCenterAndSize(
+        position,
+        new THREE.Vector3(radius * 2, 3.6, radius * 2) // Player height
+      )
+      
+      // Only push out if significantly inside the object (prevents micro-adjustments)
+      if (objBox.intersectsBox(playerBox)) {
+        const intersection = objBox.clone().intersect(playerBox)
+        const intersectionSize = intersection.getSize(new THREE.Vector3())
+        
+        // Only push if intersection is significant (prevents stuttering from tiny overlaps)
+        if (intersectionSize.x > 0.05 || intersectionSize.z > 0.05) {
+          const objCenter = objBox.getCenter(new THREE.Vector3())
+          const playerCenter = position.clone()
+          
+          // Calculate push direction (away from object center)
+          const pushDirection = playerCenter.clone().sub(objCenter)
+          pushDirection.y = 0 // Only push horizontally
+          pushDirection.normalize()
+          
+          // Push out with a small buffer to prevent re-collision
+          const pushDistance = Math.max(intersectionSize.x, intersectionSize.z) + 0.1
+          
+          if (Math.abs(pushDirection.x) > Math.abs(pushDirection.z)) {
+            position.x = objCenter.x + (objBox.max.x - objBox.min.x) / 2 * Math.sign(pushDirection.x) + radius + 0.05
+          } else {
+            position.z = objCenter.z + (objBox.max.z - objBox.min.z) / 2 * Math.sign(pushDirection.z) + radius + 0.05
+          }
+        }
+      }
+    }
   }
 
   // Check collision in a specific direction (for more precise movement)

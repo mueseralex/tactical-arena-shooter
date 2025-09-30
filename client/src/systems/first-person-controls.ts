@@ -428,9 +428,15 @@ export class FirstPersonControls {
     const newPosition = this.camera.position.clone()
     newPosition.addScaledVector(this.velocity, deltaTime)
     
-    // Apply collision detection
-    const validPosition = this.collisionSystem.getValidPosition(this.camera.position, newPosition)
-    this.camera.position.copy(validPosition)
+    // Only apply collision detection if there's actual movement or velocity
+    const hasMovement = this.velocity.length() > 0.001 || 
+                       this.camera.position.distanceTo(newPosition) > 0.001
+    
+    if (hasMovement) {
+      // Apply collision detection
+      const validPosition = this.collisionSystem.getValidPosition(this.camera.position, newPosition)
+      this.camera.position.copy(validPosition)
+    }
     
     // Ground collision (use current height for crouching)
     if (this.camera.position.y <= this.currentHeight) {
