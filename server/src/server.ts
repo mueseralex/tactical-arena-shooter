@@ -56,7 +56,8 @@ wss.on('connection', (ws, request) => {
     team: null,
     kills: 0,
     deaths: 0,
-    connectedAt: new Date()
+    connectedAt: new Date(),
+    lastActivity: Date.now()
   }
   
   connectedPlayers.set(playerId, playerInfo)
@@ -119,6 +120,9 @@ wss.on('connection', (ws, request) => {
 function handlePlayerMessage(playerId: number, message: any) {
   const player = connectedPlayers.get(playerId)
   if (!player) return
+  
+  // Update player activity
+  player.lastActivity = Date.now()
 
   switch (message.type) {
     case 'ping':

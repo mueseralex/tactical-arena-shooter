@@ -781,7 +781,14 @@ export class GameEngine {
     })
     
     // Add position sending to the game loop
-    this.positionUpdateInterval = setInterval(sendPositionUpdate, positionSendRate)
+    this.positionUpdateInterval = setInterval(() => {
+      try {
+        sendPositionUpdate()
+        console.log('📍 Position update sent')
+      } catch (error) {
+        console.error('❌ Failed to send position update:', error)
+      }
+    }, positionSendRate)
     
     console.log('✅ Controls connected to networking')
   }
