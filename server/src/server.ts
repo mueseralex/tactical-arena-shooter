@@ -22,8 +22,20 @@ let playerIdCounter = 0
 const matchmakingQueue: Array<{playerId: number, gameMode: string, queueTime: number}> = []
 let matchIdCounter = 0
 
-// Active matches
+// Active matches - Map<matchId, matchData>
 const activeMatches = new Map()
+
+// Match cleanup interval (clean up finished matches every 5 minutes)
+setInterval(() => {
+  const now = Date.now()
+  for (const [matchId, match] of activeMatches.entries()) {
+    // Remove matches that have been finished for more than 5 minutes
+    if (match.finishedAt && (now - match.finishedAt) > 300000) {
+      console.log(`🧹 Cleaning up finished match: ${matchId}`)
+      activeMatches.delete(matchId)
+    }
+  }
+}, 300000) // Run every 5 minutes
 
 // Spawn points for 1v1 (behind cover boxes for protection)
 const SPAWN_POINTS = {
@@ -614,17 +626,22 @@ function endMatch(matchId: string) {
   
   match.winner = matchWinner
   match.status = 'completed'
+  match.finishedAt = Date.now() // Mark for cleanup
   
   console.log(`🏆 Match ${matchId} completed! Winner: Player ${matchWinner} (${highestScore} rounds)`)
   
-  // Broadcast match end
-  broadcast({
-    type: 'match_end',
-    matchId: matchId,
-    winner: matchWinner,
-    finalScores: match.scores,
-    totalRounds: match.currentRound
-  })
+  // Broadcast match end with error handling
+  try {
+    broadcast({
+      type: 'match_end',
+      matchId: matchId,
+      winner: matchWinner,
+      finalScores: match.scores,
+      totalRounds: match.currentRound
+    })
+  } catch (error) {
+    console.error(`❌ Failed to broadcast match end for ${matchId}:`, error)
+  }
   
   // Clean up match and reset players
   match.players.forEach((playerId: number) => {

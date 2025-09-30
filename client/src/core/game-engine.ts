@@ -147,7 +147,12 @@ export class GameEngine {
     const coverObjects = this.arena.getCoverObjects()
     this.controls.addCollisionObjects(coverObjects)
     
-    console.log('✅ First-person controls initialized with collision detection')
+    // Set scene for bullet hole system
+    if (this.controls && (this.controls as any).collisionSystem) {
+      (this.controls as any).collisionSystem.setScene(this.scene)
+    }
+    
+    console.log('✅ First-person controls initialized with collision detection and bullet holes')
   }
 
   private initSettingsMenu(): void {
@@ -169,6 +174,17 @@ export class GameEngine {
     this.settingsMenu.onViewmodelChanged((enabled) => {
       if (this.controls && (this.controls as any).viewportWeapon) {
         (this.controls as any).viewportWeapon.setVisible(enabled)
+      }
+    })
+
+    this.settingsMenu.onCrosshairChanged((settings) => {
+      // Crosshair is updated via CSS variables in the settings menu
+      console.log('🎯 Crosshair settings applied:', settings)
+    })
+
+    this.settingsMenu.onViewmodelPositionChanged((x, y, z) => {
+      if (this.controls && (this.controls as any).viewportWeapon) {
+        (this.controls as any).viewportWeapon.setViewmodelPosition(x, y, z)
       }
     })
     
@@ -279,9 +295,28 @@ export class GameEngine {
       console.log('🔧 Force hiding menu for match start')
       this.settingsMenu.hide()
       
+      // Initialize game elements if not already done
+      if (!this.isGameInitialized) {
+        console.log('🎮 Initializing controls for multiplayer...')
+        this.initControls()
+        
+        // Apply settings now that controls are ready
+        console.log('⚙️ Applying initial settings to controls...')
+        this.settingsMenu.applyInitialSettings()
+        
+        // Connect controls to networking
+        this.connectControlsToNetworking()
+        
+        this.isGameInitialized = true
+      }
+      
+      // Update menu state
+      this.settingsMenu.updateGameState(true, 'multiplayer')
+      
       // Show match start countdown
       this.showMatchStartCountdown(() => {
-        this.startGame()
+        console.log('🎯 Match countdown complete - ready for round start')
+        // Don't call startGame() here - wait for round start from server
       })
     })
 
@@ -588,8 +623,9 @@ export class GameEngine {
       // Request 1v1 matchmaking
       this.gameClient.requestMatchmaking('1v1')
       
-      // Update UI to show matchmaking status
+      // Update UI to show matchmaking status and disable practice
       this.updateMatchmakingStatus('Searching for opponent...')
+      this.settingsMenu.updateGameState(false, undefined, true) // isMatchmaking = true
       
     } catch (error) {
       console.error('❌ Failed to connect to server:', error)
@@ -773,6 +809,14 @@ export class GameEngine {
     this.showRoundCountdown(roundData.round, () => {
       // Start round timer after countdown
       this.startRoundTimer()
+      
+      // Ensure controls are enabled and pointer lock is active
+      if (this.controls) {
+        console.log('🎮 Enabling controls for round start')
+        // Request pointer lock to enable mouse controls
+        this.canvas.requestPointerLock()
+      }
+      
       console.log(`🎯 Round ${roundData.round} started!`)
     })
   }

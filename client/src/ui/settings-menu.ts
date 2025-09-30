@@ -2,6 +2,13 @@ export interface GameSettings {
   mouseSensitivity: number
   fieldOfView: number
   viewmodelEnabled: boolean
+  crosshairStyle: string
+  crosshairColor: string
+  crosshairSize: number
+  crosshairOpacity: number
+  viewmodelX: number
+  viewmodelY: number
+  viewmodelZ: number
 }
 
 export class SettingsMenu {
@@ -13,6 +20,8 @@ export class SettingsMenu {
   private onSensitivityChange?: (sensitivity: number) => void
   private onFOVChange?: (fov: number) => void
   private onViewmodelChange?: (enabled: boolean) => void
+  private onCrosshairChange?: (settings: { style: string, color: string, size: number, opacity: number }) => void
+  private onViewmodelPositionChange?: (x: number, y: number, z: number) => void
   private onStartGame?: () => void
   private onStartPractice?: () => void
   private onExitPractice?: () => void
@@ -30,21 +39,32 @@ export class SettingsMenu {
   }
 
   private loadSettings(): GameSettings {
+    const defaults = {
+      mouseSensitivity: 1.0,
+      fieldOfView: 75,
+      viewmodelEnabled: true,
+      crosshairStyle: 'dot',
+      crosshairColor: '#ffffff',
+      crosshairSize: 4,
+      crosshairOpacity: 1.0,
+      viewmodelX: 0.3,
+      viewmodelY: -0.2,
+      viewmodelZ: -0.5
+    }
+    
     // Load settings from localStorage or use defaults
     const savedSettings = localStorage.getItem('tactical-shooter-settings')
     if (savedSettings) {
       try {
-        return JSON.parse(savedSettings)
+        const parsed = JSON.parse(savedSettings)
+        // Merge with defaults to ensure all properties exist
+        return { ...defaults, ...parsed }
       } catch (error) {
         console.warn('Failed to load settings, using defaults')
       }
     }
     
-    return {
-      mouseSensitivity: 1.0,
-      fieldOfView: 75,
-      viewmodelEnabled: true
-    }
+    return defaults
   }
 
   private saveSettings(): void {
@@ -172,6 +192,73 @@ export class SettingsMenu {
                     <span class="checkmark"></span>
                     Show Weapon Viewmodel
                   </label>
+                </div>
+              </div>
+              
+              <div class="settings-section">
+                <h3>🎯 Crosshair</h3>
+                <div class="setting-group">
+                  <label for="crosshair-style">Crosshair Style</label>
+                  <select id="crosshair-style" class="setting-select">
+                    <option value="dot" ${this.settings.crosshairStyle === 'dot' ? 'selected' : ''}>Dot</option>
+                    <option value="default" ${this.settings.crosshairStyle === 'default' ? 'selected' : ''}>Default</option>
+                    <option value="cross" ${this.settings.crosshairStyle === 'cross' ? 'selected' : ''}>Cross</option>
+                  </select>
+                </div>
+                
+                <div class="setting-group">
+                  <label for="crosshair-color">Crosshair Color</label>
+                  <select id="crosshair-color" class="setting-select">
+                    <option value="#ffffff" ${this.settings.crosshairColor === '#ffffff' ? 'selected' : ''}>White</option>
+                    <option value="#00ff00" ${this.settings.crosshairColor === '#00ff00' ? 'selected' : ''}>Green</option>
+                    <option value="#ff0000" ${this.settings.crosshairColor === '#ff0000' ? 'selected' : ''}>Red</option>
+                    <option value="#00ffff" ${this.settings.crosshairColor === '#00ffff' ? 'selected' : ''}>Cyan</option>
+                    <option value="#ffff00" ${this.settings.crosshairColor === '#ffff00' ? 'selected' : ''}>Yellow</option>
+                    <option value="#ff00ff" ${this.settings.crosshairColor === '#ff00ff' ? 'selected' : ''}>Magenta</option>
+                  </select>
+                </div>
+                
+                <div class="setting-group">
+                  <label for="crosshair-size">Crosshair Size</label>
+                  <div class="slider-container">
+                    <input type="range" id="crosshair-size" min="1" max="10" step="1" value="${this.settings.crosshairSize}">
+                    <span class="slider-value" id="crosshair-size-value">${this.settings.crosshairSize}</span>
+                  </div>
+                </div>
+                
+                <div class="setting-group">
+                  <label for="crosshair-opacity">Crosshair Opacity</label>
+                  <div class="slider-container">
+                    <input type="range" id="crosshair-opacity" min="0.1" max="1.0" step="0.1" value="${this.settings.crosshairOpacity}">
+                    <span class="slider-value" id="crosshair-opacity-value">${this.settings.crosshairOpacity.toFixed(1)}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="settings-section">
+                <h3>🔫 Viewmodel Position</h3>
+                <div class="setting-group">
+                  <label for="viewmodel-x">X Position</label>
+                  <div class="slider-container">
+                    <input type="range" id="viewmodel-x" min="-1.0" max="1.0" step="0.1" value="${this.settings.viewmodelX}">
+                    <span class="slider-value" id="viewmodel-x-value">${this.settings.viewmodelX.toFixed(1)}</span>
+                  </div>
+                </div>
+                
+                <div class="setting-group">
+                  <label for="viewmodel-y">Y Position</label>
+                  <div class="slider-container">
+                    <input type="range" id="viewmodel-y" min="-1.0" max="1.0" step="0.1" value="${this.settings.viewmodelY}">
+                    <span class="slider-value" id="viewmodel-y-value">${this.settings.viewmodelY.toFixed(1)}</span>
+                  </div>
+                </div>
+                
+                <div class="setting-group">
+                  <label for="viewmodel-z">Z Position</label>
+                  <div class="slider-container">
+                    <input type="range" id="viewmodel-z" min="-2.0" max="0.0" step="0.1" value="${this.settings.viewmodelZ}">
+                    <span class="slider-value" id="viewmodel-z-value">${this.settings.viewmodelZ.toFixed(1)}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -446,6 +533,28 @@ export class SettingsMenu {
         .btn-warning:hover {
           background: #d97706;
           transform: translateY(-1px);
+        }
+        
+        .setting-select {
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 6px;
+          color: #fff;
+          padding: 8px 12px;
+          font-size: 14px;
+          width: 100%;
+          cursor: pointer;
+        }
+        
+        .setting-select:focus {
+          outline: none;
+          border-color: #60a5fa;
+          box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+        }
+        
+        .setting-select option {
+          background: #1a1a1a;
+          color: #fff;
         }
       
       .debug-section {
@@ -825,6 +934,72 @@ export class SettingsMenu {
       this.settings.viewmodelEnabled = enabled
       this.onViewmodelChange?.(enabled)
     })
+
+    // Crosshair style
+    const crosshairStyle = this.settingsElement.querySelector('#crosshair-style') as HTMLSelectElement
+    crosshairStyle?.addEventListener('change', (e) => {
+      const value = (e.target as HTMLSelectElement).value
+      this.settings.crosshairStyle = value
+      this.updateCrosshair()
+    })
+
+    // Crosshair color
+    const crosshairColor = this.settingsElement.querySelector('#crosshair-color') as HTMLSelectElement
+    crosshairColor?.addEventListener('change', (e) => {
+      const value = (e.target as HTMLSelectElement).value
+      this.settings.crosshairColor = value
+      this.updateCrosshair()
+    })
+
+    // Crosshair size
+    const crosshairSize = this.settingsElement.querySelector('#crosshair-size') as HTMLInputElement
+    const crosshairSizeValue = this.settingsElement.querySelector('#crosshair-size-value') as HTMLSpanElement
+    crosshairSize?.addEventListener('input', (e) => {
+      const value = parseInt((e.target as HTMLInputElement).value)
+      this.settings.crosshairSize = value
+      crosshairSizeValue.textContent = value.toString()
+      this.updateCrosshair()
+    })
+
+    // Crosshair opacity
+    const crosshairOpacity = this.settingsElement.querySelector('#crosshair-opacity') as HTMLInputElement
+    const crosshairOpacityValue = this.settingsElement.querySelector('#crosshair-opacity-value') as HTMLSpanElement
+    crosshairOpacity?.addEventListener('input', (e) => {
+      const value = parseFloat((e.target as HTMLInputElement).value)
+      this.settings.crosshairOpacity = value
+      crosshairOpacityValue.textContent = value.toFixed(1)
+      this.updateCrosshair()
+    })
+
+    // Viewmodel X position
+    const viewmodelX = this.settingsElement.querySelector('#viewmodel-x') as HTMLInputElement
+    const viewmodelXValue = this.settingsElement.querySelector('#viewmodel-x-value') as HTMLSpanElement
+    viewmodelX?.addEventListener('input', (e) => {
+      const value = parseFloat((e.target as HTMLInputElement).value)
+      this.settings.viewmodelX = value
+      viewmodelXValue.textContent = value.toFixed(1)
+      this.updateViewmodelPosition()
+    })
+
+    // Viewmodel Y position
+    const viewmodelY = this.settingsElement.querySelector('#viewmodel-y') as HTMLInputElement
+    const viewmodelYValue = this.settingsElement.querySelector('#viewmodel-y-value') as HTMLSpanElement
+    viewmodelY?.addEventListener('input', (e) => {
+      const value = parseFloat((e.target as HTMLInputElement).value)
+      this.settings.viewmodelY = value
+      viewmodelYValue.textContent = value.toFixed(1)
+      this.updateViewmodelPosition()
+    })
+
+    // Viewmodel Z position
+    const viewmodelZ = this.settingsElement.querySelector('#viewmodel-z') as HTMLInputElement
+    const viewmodelZValue = this.settingsElement.querySelector('#viewmodel-z-value') as HTMLSpanElement
+    viewmodelZ?.addEventListener('input', (e) => {
+      const value = parseFloat((e.target as HTMLInputElement).value)
+      this.settings.viewmodelZ = value
+      viewmodelZValue.textContent = value.toFixed(1)
+      this.updateViewmodelPosition()
+    })
     
     // Game action buttons
     const matchmakeBtn = this.settingsElement.querySelector('#matchmake-1v1') as HTMLButtonElement
@@ -1031,6 +1206,49 @@ export class SettingsMenu {
     this.onRequestServerInfo = callback
   }
 
+  onCrosshairChanged(callback: (settings: { style: string, color: string, size: number, opacity: number }) => void): void {
+    this.onCrosshairChange = callback
+  }
+
+  onViewmodelPositionChanged(callback: (x: number, y: number, z: number) => void): void {
+    this.onViewmodelPositionChange = callback
+  }
+
+  private updateCrosshair(): void {
+    const crosshairElement = document.getElementById('crosshair')
+    if (!crosshairElement) {
+      console.warn('🎯 Crosshair element not found!')
+      return
+    }
+
+    console.log(`🎯 Updating crosshair: style=${this.settings.crosshairStyle}, color=${this.settings.crosshairColor}`)
+
+    // Update crosshair class for style
+    crosshairElement.className = this.settings.crosshairStyle
+
+    // Update CSS variables
+    const root = document.documentElement
+    root.style.setProperty('--crosshair-color', this.settings.crosshairColor)
+    root.style.setProperty('--crosshair-length', `${this.settings.crosshairSize}px`)
+    root.style.setProperty('--crosshair-thickness', `${Math.max(1, Math.floor(this.settings.crosshairSize / 2))}px`)
+    root.style.setProperty('--crosshair-opacity', this.settings.crosshairOpacity.toString())
+
+    // Call callback if set
+    this.onCrosshairChange?.({
+      style: this.settings.crosshairStyle,
+      color: this.settings.crosshairColor,
+      size: this.settings.crosshairSize,
+      opacity: this.settings.crosshairOpacity
+    })
+
+    console.log(`🎯 Crosshair updated: ${this.settings.crosshairStyle}, ${this.settings.crosshairColor}, size: ${this.settings.crosshairSize}`)
+  }
+
+  private updateViewmodelPosition(): void {
+    this.onViewmodelPositionChange?.(this.settings.viewmodelX, this.settings.viewmodelY, this.settings.viewmodelZ)
+    console.log(`🔫 Viewmodel position updated: (${this.settings.viewmodelX.toFixed(1)}, ${this.settings.viewmodelY.toFixed(1)}, ${this.settings.viewmodelZ.toFixed(1)})`)
+  }
+
   updateServerList(serverData: any): void {
     console.log('📊 Updating server list with real data:', serverData)
     
@@ -1088,7 +1306,7 @@ export class SettingsMenu {
     })
   }
 
-  updateGameState(gameStarted: boolean, gameMode?: 'multiplayer' | 'practice'): void {
+  updateGameState(gameStarted: boolean, gameMode?: 'multiplayer' | 'practice', isMatchmaking?: boolean): void {
     const matchmakeBtn = this.settingsElement.querySelector('#matchmake-1v1') as HTMLButtonElement
     const practiceBtn = this.settingsElement.querySelector('#solo-practice') as HTMLButtonElement
     const exitPracticeBtn = this.settingsElement.querySelector('#exit-practice') as HTMLButtonElement
@@ -1111,8 +1329,32 @@ export class SettingsMenu {
       if (serverSection) serverSection.style.display = 'block'
     } else {
       // Main menu - show main buttons, hide game buttons
-      if (matchmakeBtn) matchmakeBtn.style.display = 'inline-block'
-      if (practiceBtn) practiceBtn.style.display = 'inline-block'
+      if (matchmakeBtn) {
+        matchmakeBtn.style.display = 'inline-block'
+        if (isMatchmaking) {
+          matchmakeBtn.disabled = true
+          matchmakeBtn.textContent = '🔄 Searching...'
+          matchmakeBtn.style.opacity = '0.5'
+        } else {
+          matchmakeBtn.disabled = false
+          matchmakeBtn.textContent = '⚔️ Matchmake 1v1'
+          matchmakeBtn.style.opacity = '1'
+        }
+      }
+      
+      if (practiceBtn) {
+        practiceBtn.style.display = 'inline-block'
+        if (isMatchmaking) {
+          practiceBtn.disabled = true
+          practiceBtn.textContent = '🔄 Matchmaking...'
+          practiceBtn.style.opacity = '0.5'
+        } else {
+          practiceBtn.disabled = false
+          practiceBtn.textContent = '🎯 Solo Practice'
+          practiceBtn.style.opacity = '1'
+        }
+      }
+      
       if (exitPracticeBtn) exitPracticeBtn.style.display = 'none'
       if (resumeBtn) resumeBtn.style.display = 'none'
       if (serverSection) serverSection.style.display = 'block'
@@ -1146,6 +1388,8 @@ export class SettingsMenu {
     this.onSensitivityChange?.(this.settings.mouseSensitivity)
     this.onFOVChange?.(this.settings.fieldOfView)
     this.onViewmodelChange?.(this.settings.viewmodelEnabled)
+    this.updateCrosshair()
+    this.updateViewmodelPosition()
   }
 
   // Debug logging methods

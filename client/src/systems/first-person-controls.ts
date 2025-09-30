@@ -47,6 +47,12 @@ export class FirstPersonControls {
   // Shooting callback
   private onShoot?: (shootData: { origin: THREE.Vector3, direction: THREE.Vector3, maxRange: number }) => void
   
+  // Audio properties
+  private walkSound?: HTMLAudioElement
+  private jumpSound?: HTMLAudioElement
+  private lastFootstepTime = 0
+  private footstepInterval = 500 // ms between footsteps
+  
   // Ground collision and crouching
   private standingHeight = 1.8 // Player height when standing
   private crouchingHeight = 1.2 // Player height when crouching
@@ -105,7 +111,41 @@ export class FirstPersonControls {
     
     // No longer need browser shortcut prevention since we use Shift/C for crouch
     
+    // Initialize audio
+    this.setupAudio()
+    
     console.log('✅ First-person controls initialized')
+  }
+
+  private setupAudio(): void {
+    // Walking sound
+    this.walkSound = new Audio()
+    this.walkSound.volume = 0.2
+    this.walkSound.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT'
+    
+    // Jumping sound
+    this.jumpSound = new Audio()
+    this.jumpSound.volume = 0.3
+    this.jumpSound.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT'
+    
+    console.log('🔊 Movement audio initialized')
+  }
+
+  private handleWalkingSounds(isMoving: boolean): void {
+    const now = Date.now()
+    
+    // Only play footsteps if moving and on ground
+    if (isMoving && this.canJump && this.walkSound) {
+      // Adjust footstep interval based on crouch state
+      const currentInterval = this.isCrouching ? this.footstepInterval * 1.5 : this.footstepInterval
+      
+      if (now - this.lastFootstepTime > currentInterval) {
+        this.walkSound.currentTime = 0
+        this.walkSound.volume = this.isCrouching ? 0.1 : 0.2 // Quieter when crouching
+        this.walkSound.play().catch(e => console.warn('Could not play walk sound:', e))
+        this.lastFootstepTime = now
+      }
+    }
   }
 
   private setupPlayerModel(): void {
@@ -257,10 +297,10 @@ export class FirstPersonControls {
     
     // Check for collision with objects first (bullets can't go through walls)
     const maxRange = 100
-    const wallHit = this.collisionSystem.raycastHit(origin, direction, maxRange)
+    const wallHit = this.collisionSystem.raycastHitWithBulletHole(origin, direction, maxRange)
     
     if (wallHit.hit) {
-      console.log(`🧱 Bullet hit wall at distance ${wallHit.distance.toFixed(2)}`)
+      console.log(`🧱 Bullet hit wall at distance ${wallHit.distance.toFixed(2)} - bullet hole created`)
       // Bullet hit a wall/object, no player damage
       return
     }
@@ -361,6 +401,12 @@ export class FirstPersonControls {
     // Calculate current jump height based on fatigue
     this.calculateJumpHeight()
     
+    // Play jump sound
+    if (this.jumpSound) {
+      this.jumpSound.currentTime = 0
+      this.jumpSound.play().catch(e => console.warn('Could not play jump sound:', e))
+    }
+    
     // Perform jump with current height
     this.velocity.y += this.currentJumpHeight
     this.canJump = false
@@ -426,9 +472,15 @@ export class FirstPersonControls {
     // Check if player is moving for weapon sway
     const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight
     
+    // Handle walking sounds
+    this.handleWalkingSounds(isMoving)
+    
     // Update viewport weapon system
     this.viewportWeapon.update(deltaTime, isMoving)
     this.viewportWeapon.render()
+    
+    // Update bullet holes (fade and cleanup)
+    this.collisionSystem.updateBulletHoles()
     
     // Apply gravity
     this.velocity.y += this.gravity * deltaTime
@@ -559,6 +611,16 @@ export class FirstPersonControls {
     // Dispose of viewport weapon system
     if (this.viewportWeapon) {
       this.viewportWeapon.dispose()
+    }
+    
+    // Clean up audio
+    if (this.walkSound) {
+      this.walkSound.pause()
+      this.walkSound.src = ''
+    }
+    if (this.jumpSound) {
+      this.jumpSound.pause()
+      this.jumpSound.src = ''
     }
     
     console.log('🧹 First-person controls disposed')

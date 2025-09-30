@@ -35,36 +35,61 @@
     }
 
     #crosshair {
-      position: absolute;
+      position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       width: 20px;
       height: 20px;
       pointer-events: none;
+      z-index: 9999;
+      opacity: var(--crosshair-opacity, 1);
     }
 
-    #crosshair::before,
-    #crosshair::after {
-      content: '';
+    .crosshair-line {
       position: absolute;
-      background: #fff;
+      background: var(--crosshair-color, #ffffff);
+      box-shadow: 0 0 2px rgba(0,0,0,0.8);
     }
 
-    #crosshair::before {
+    .crosshair-line.horizontal {
       top: 50%;
-      left: 8px;
-      width: 4px;
-      height: 2px;
+      left: 2px;
+      width: var(--crosshair-length, 6px);
+      height: var(--crosshair-thickness, 2px);
       transform: translateY(-50%);
     }
 
-    #crosshair::after {
-      top: 8px;
+    .crosshair-line.vertical {
+      top: 2px;
       left: 50%;
-      width: 2px;
-      height: 4px;
+      width: var(--crosshair-thickness, 2px);
+      height: var(--crosshair-length, 6px);
       transform: translateX(-50%);
+    }
+
+    /* Cross style - full cross */
+    #crosshair.cross .crosshair-line.horizontal {
+      left: 0px;
+      width: 20px;
+    }
+
+    #crosshair.cross .crosshair-line.vertical {
+      top: 0px;
+      height: 20px;
+    }
+
+    /* Dot style crosshair */
+    #crosshair.dot .crosshair-line {
+      display: none;
+    }
+
+    #crosshair.dot {
+      width: var(--crosshair-thickness, 4px);
+      height: var(--crosshair-thickness, 4px);
+      background: var(--crosshair-color, #ffffff);
+      border-radius: 50%;
+      box-shadow: 0 0 2px rgba(0,0,0,0.8);
     }
 
     #hud {
@@ -275,7 +300,10 @@
   <canvas id="gameCanvas"></canvas>
   
   <div id="ui">
-    <div id="crosshair"></div>
+    <div id="crosshair">
+      <div class="crosshair-line horizontal"></div>
+      <div class="crosshair-line vertical"></div>
+    </div>
     
     <div id="hud">
       <div class="stat">

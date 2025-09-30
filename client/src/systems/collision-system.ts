@@ -5,6 +5,12 @@ export class CollisionSystem {
   
   // Collision detection parameters
   private readonly COLLISION_DISTANCE = 0.2 // Distance to maintain from objects
+  
+  // Bullet hole system
+  private bulletHoles: THREE.Mesh[] = []
+  private scene?: THREE.Scene
+  private readonly MAX_BULLET_HOLES = 50 // Maximum number of bullet holes
+  private readonly BULLET_HOLE_LIFETIME = 30000 // 30 seconds
   private readonly RAY_DIRECTIONS = [
     new THREE.Vector3(1, 0, 0),     // Right
     new THREE.Vector3(-1, 0, 0),    // Left  
@@ -248,5 +254,122 @@ export class CollisionSystem {
     
     // If raycast hits an object before reaching the target, no line of sight
     return !raycastResult.hit || raycastResult.distance >= distance - 0.1
+  }
+
+  // Set the scene for bullet hole management
+  setScene(scene: THREE.Scene): void {
+    this.scene = scene
+  }
+
+  // Create a bullet hole at the hit point
+  createBulletHole(hitPoint: THREE.Vector3, normal: THREE.Vector3): void {
+    if (!this.scene) return
+
+    // Remove oldest bullet hole if we've reached the limit
+    if (this.bulletHoles.length >= this.MAX_BULLET_HOLES) {
+      const oldestHole = this.bulletHoles.shift()
+      if (oldestHole) {
+        this.scene.remove(oldestHole)
+        oldestHole.geometry.dispose()
+        if (oldestHole.material instanceof THREE.Material) {
+          oldestHole.material.dispose()
+        }
+      }
+    }
+
+    // Create bullet hole geometry (small circle)
+    const holeGeometry = new THREE.CircleGeometry(0.02, 8) // 2cm diameter
+    const holeMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x1a1a1a,
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide
+    })
+
+    const bulletHole = new THREE.Mesh(holeGeometry, holeMaterial)
+    
+    // Position the bullet hole at the hit point
+    bulletHole.position.copy(hitPoint)
+    
+    // Orient the bullet hole to face away from the surface
+    bulletHole.lookAt(hitPoint.clone().add(normal))
+    
+    // Move slightly forward to prevent z-fighting
+    bulletHole.position.add(normal.clone().multiplyScalar(0.001))
+    
+    // Add timestamp for cleanup
+    (bulletHole as any).createdAt = Date.now()
+    
+    this.bulletHoles.push(bulletHole)
+    this.scene.add(bulletHole)
+    
+    console.log(`💥 Bullet hole created at (${hitPoint.x.toFixed(2)}, ${hitPoint.y.toFixed(2)}, ${hitPoint.z.toFixed(2)})`)
+  }
+
+  // Update bullet holes (fade and remove old ones)
+  updateBulletHoles(): void {
+    const now = Date.now()
+    
+    for (let i = this.bulletHoles.length - 1; i >= 0; i--) {
+      const hole = this.bulletHoles[i]
+      const age = now - (hole as any).createdAt
+      
+      if (age > this.BULLET_HOLE_LIFETIME) {
+        // Remove expired bullet hole
+        this.bulletHoles.splice(i, 1)
+        if (this.scene) {
+          this.scene.remove(hole)
+        }
+        hole.geometry.dispose()
+        if (hole.material instanceof THREE.Material) {
+          hole.material.dispose()
+        }
+      } else if (age > this.BULLET_HOLE_LIFETIME * 0.7) {
+        // Start fading in the last 30% of lifetime
+        const fadeProgress = (age - this.BULLET_HOLE_LIFETIME * 0.7) / (this.BULLET_HOLE_LIFETIME * 0.3)
+        const opacity = 0.8 * (1 - fadeProgress)
+        if (hole.material instanceof THREE.MeshBasicMaterial) {
+          hole.material.opacity = Math.max(0, opacity)
+        }
+      }
+    }
+  }
+
+  // Enhanced raycast that also creates bullet holes
+  raycastHitWithBulletHole(origin: THREE.Vector3, direction: THREE.Vector3, maxDistance: number = 100): {
+    hit: boolean,
+    distance: number,
+    point?: THREE.Vector3,
+    object?: THREE.Mesh
+  } {
+    const result = this.raycastHit(origin, direction, maxDistance)
+    
+    // Create bullet hole if we hit something
+    if (result.hit && result.point && result.object) {
+      // Calculate surface normal (simplified - assumes box geometry)
+      const hitPoint = result.point
+      const objectPosition = result.object.position
+      
+      // Simple normal calculation based on which face was hit
+      const localHit = hitPoint.clone().sub(objectPosition)
+      const normal = new THREE.Vector3()
+      
+      // Determine which face was hit based on the largest component
+      const absX = Math.abs(localHit.x)
+      const absY = Math.abs(localHit.y)
+      const absZ = Math.abs(localHit.z)
+      
+      if (absX > absY && absX > absZ) {
+        normal.set(Math.sign(localHit.x), 0, 0)
+      } else if (absY > absZ) {
+        normal.set(0, Math.sign(localHit.y), 0)
+      } else {
+        normal.set(0, 0, Math.sign(localHit.z))
+      }
+      
+      this.createBulletHole(hitPoint, normal)
+    }
+    
+    return result
   }
 }
