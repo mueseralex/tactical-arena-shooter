@@ -694,36 +694,19 @@ export class GameEngine {
       )
     }
     
-    // Hook into the controls to send shooting events
-    const originalShoot = (this.controls as any).handleShoot?.bind(this.controls)
-    if (originalShoot) {
-      (this.controls as any).handleShoot = () => {
-        // Call original shoot function
-        const result = originalShoot()
+    // Set up shooting callback for proper hit detection
+    this.controls.setShootCallback((shootData) => {
+      // Send shot to server if connected
+      if (this.gameClient.connected && this.gameState === 'playing') {
+        console.log('🎯 Sending shot data to server for hit detection')
         
-        // Send shot to server if connected
-        if (this.gameClient.connected && this.gameState === 'playing') {
-          // Get camera direction for shot
-          const direction = new THREE.Vector3()
-          this.camera.getWorldDirection(direction)
-          
-          // Get camera position for hit detection
-          const position = this.camera.position
-          
-          this.gameClient.sendPlayerShot({
-            x: direction.x,
-            y: direction.y,
-            z: direction.z
-          }, {
-            x: position.x,
-            y: position.y,
-            z: position.z
-          })
-        }
-        
-        return result
+        // Send shot with collision-checked data
+        this.gameClient.sendPlayerShot(
+          { x: shootData.direction.x, y: shootData.direction.y, z: shootData.direction.z },
+          { x: shootData.origin.x, y: shootData.origin.y, z: shootData.origin.z }
+        )
       }
-    }
+    })
     
     // Add position sending to the game loop
     this.positionUpdateInterval = setInterval(sendPositionUpdate, positionSendRate)

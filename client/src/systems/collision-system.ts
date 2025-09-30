@@ -210,4 +210,43 @@ export class CollisionSystem {
   get collisionDistance(): number {
     return this.COLLISION_DISTANCE
   }
+
+  // Raycast for weapon hit detection - checks if bullets can pass through objects
+  raycastHit(origin: THREE.Vector3, direction: THREE.Vector3, maxDistance: number = 100): {
+    hit: boolean,
+    distance: number,
+    point?: THREE.Vector3,
+    object?: THREE.Mesh
+  } {
+    const raycaster = new THREE.Raycaster(origin, direction.normalize(), 0, maxDistance)
+    
+    // Check intersections with collision objects (walls, boxes, etc.)
+    const intersections = raycaster.intersectObjects(this.collisionObjects, false)
+    
+    if (intersections.length > 0) {
+      const firstHit = intersections[0]
+      return {
+        hit: true,
+        distance: firstHit.distance,
+        point: firstHit.point,
+        object: firstHit.object as THREE.Mesh
+      }
+    }
+    
+    return {
+      hit: false,
+      distance: maxDistance
+    }
+  }
+
+  // Check if line of sight exists between two points (for player hit detection)
+  hasLineOfSight(from: THREE.Vector3, to: THREE.Vector3): boolean {
+    const direction = to.clone().sub(from).normalize()
+    const distance = from.distanceTo(to)
+    
+    const raycastResult = this.raycastHit(from, direction, distance)
+    
+    // If raycast hits an object before reaching the target, no line of sight
+    return !raycastResult.hit || raycastResult.distance >= distance - 0.1
+  }
 }

@@ -318,6 +318,10 @@ function performHitDetection(shooterId: number, direction: any, shooterPosition:
   const match = activeMatches.get(shooter.matchId!)
   if (!match) return { hit: false, targetId: undefined, damage: 0, isHeadshot: false, distance: 0 }
   
+  const maxRange = 100 // Maximum weapon range
+  let closestHit = null
+  let closestDistance = maxRange
+  
   // Check all other players in the match
   for (const targetId of match.players) {
     if (targetId === shooterId) continue
@@ -325,40 +329,87 @@ function performHitDetection(shooterId: number, direction: any, shooterPosition:
     const target = connectedPlayers.get(targetId)
     if (!target || !target.isAlive) continue
     
-    // Simple distance-based hit detection (can be improved with proper raycasting)
-    const distance = calculateDistance(shooterPosition, target.position)
-    const maxRange = 50 // Maximum weapon range
+    // Calculate if shot hits the target using improved raycasting
+    const hitResult = calculateRaycastHit(shooterPosition, direction, target.position, maxRange)
     
-    if (distance <= maxRange) {
-      // Calculate if shot is aimed at target (simplified)
-      const aimAccuracy = calculateAimAccuracy(shooterPosition, target.position, direction)
+    if (hitResult.hit && hitResult.distance < closestDistance) {
+      closestDistance = hitResult.distance
       
-      if (aimAccuracy > 0.8) { // 80% accuracy threshold
-        // Determine if headshot (simplified - based on aim height)
-        const isHeadshot = Math.abs(shooterPosition.y - target.position.y) < 0.3 && aimAccuracy > 0.95
-        
-        // Calculate damage
-        let damage = 35 // Base damage
-        if (isHeadshot) {
-          damage = 100 // One-shot headshot
-        } else {
-          // Distance-based damage falloff
-          const damageFalloff = Math.max(0.5, 1 - (distance / maxRange))
-          damage = Math.floor(damage * damageFalloff)
-        }
-        
-        return {
-          hit: true,
-          targetId: targetId,
-          damage: damage,
-          isHeadshot: isHeadshot,
-          distance: distance
-        }
+      // Determine if headshot based on hit position
+      const isHeadshot = hitResult.hitHeight > 1.6 // Head is above 1.6m height
+      
+      // Calculate damage with proper falloff
+      let damage = 35 // Base body damage
+      if (isHeadshot) {
+        damage = 100 // One-shot headshot kill
+      } else {
+        // Distance-based damage falloff for body shots
+        const damageFalloff = Math.max(0.3, 1 - (hitResult.distance / maxRange))
+        damage = Math.floor(damage * damageFalloff)
+      }
+      
+      closestHit = {
+        hit: true,
+        targetId: targetId,
+        damage: damage,
+        isHeadshot: isHeadshot,
+        distance: hitResult.distance
       }
     }
   }
   
-  return { hit: false, targetId: undefined, damage: 0, isHeadshot: false, distance: 0 }
+  return closestHit || { hit: false, targetId: undefined, damage: 0, isHeadshot: false, distance: 0 }
+}
+
+function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, maxRange: number) {
+  // Calculate vector from shooter to target
+  const toTarget = {
+    x: targetPos.x - shooterPos.x,
+    y: targetPos.y - shooterPos.y,
+    z: targetPos.z - shooterPos.z
+  }
+  
+  const targetDistance = Math.sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y + toTarget.z * toTarget.z)
+  
+  // Check if target is within range
+  if (targetDistance > maxRange) {
+    return { hit: false, distance: targetDistance, hitHeight: 0 }
+  }
+  
+  // Normalize direction and toTarget vectors
+  const dirLength = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z)
+  const normalizedDir = {
+    x: direction.x / dirLength,
+    y: direction.y / dirLength,
+    z: direction.z / dirLength
+  }
+  
+  const normalizedToTarget = {
+    x: toTarget.x / targetDistance,
+    y: toTarget.y / targetDistance,
+    z: toTarget.z / targetDistance
+  }
+  
+  // Calculate dot product to check if shot is aimed at target
+  const dotProduct = normalizedDir.x * normalizedToTarget.x + 
+                    normalizedDir.y * normalizedToTarget.y + 
+                    normalizedDir.z * normalizedToTarget.z
+  
+  // Require high accuracy for hits (0.95 = very precise aim)
+  const accuracyThreshold = 0.95
+  
+  if (dotProduct >= accuracyThreshold) {
+    // Calculate hit height for headshot detection
+    const hitHeight = shooterPos.y + (normalizedDir.y * targetDistance)
+    
+    return {
+      hit: true,
+      distance: targetDistance,
+      hitHeight: hitHeight
+    }
+  }
+  
+  return { hit: false, distance: targetDistance, hitHeight: 0 }
 }
 
 function calculateDistance(pos1: any, pos2: any): number {

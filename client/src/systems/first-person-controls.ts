@@ -44,6 +44,9 @@ export class FirstPersonControls {
   // Settings
   private baseSensitivity = 0.002
   
+  // Shooting callback
+  private onShoot?: (shootData: { origin: THREE.Vector3, direction: THREE.Vector3, maxRange: number }) => void
+  
   // Ground collision and crouching
   private standingHeight = 1.8 // Player height when standing
   private crouchingHeight = 1.2 // Player height when crouching
@@ -239,7 +242,36 @@ export class FirstPersonControls {
     if (!this.isLocked) return
     
     if (event.button === 0) { // Left click
-      this.viewportWeapon.fire()
+      if (this.viewportWeapon.fire()) {
+        // Weapon fired successfully, perform hit detection
+        this.performHitDetection()
+      }
+    }
+  }
+
+  private performHitDetection(): void {
+    // Get camera position and direction for shooting
+    const origin = this.camera.position.clone()
+    const direction = new THREE.Vector3(0, 0, -1)
+    direction.applyQuaternion(this.camera.quaternion)
+    
+    // Check for collision with objects first (bullets can't go through walls)
+    const maxRange = 100
+    const wallHit = this.collisionSystem.raycastHit(origin, direction, maxRange)
+    
+    if (wallHit.hit) {
+      console.log(`🧱 Bullet hit wall at distance ${wallHit.distance.toFixed(2)}`)
+      // Bullet hit a wall/object, no player damage
+      return
+    }
+    
+    // Send shooting data to server for player hit detection
+    if (this.onShoot) {
+      this.onShoot({
+        origin: origin,
+        direction: direction,
+        maxRange: maxRange
+      })
     }
   }
 
@@ -502,6 +534,11 @@ export class FirstPersonControls {
     this.camera.fov = fov
     this.camera.updateProjectionMatrix()
     console.log(`🔍 Field of view set to ${fov}°`)
+  }
+
+  // Set shooting callback for networking
+  setShootCallback(callback: (shootData: { origin: THREE.Vector3, direction: THREE.Vector3, maxRange: number }) => void): void {
+    this.onShoot = callback
   }
 
   // Cleanup method
