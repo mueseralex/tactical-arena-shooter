@@ -111,6 +111,31 @@ export class GameEngine {
         this.canvas.requestPointerLock()
       }
     })
+    
+    // Add emergency key handler to force controls activation
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'F1' && this.gameState === 'playing') {
+        console.log('🆘 F1 pressed - forcing controls activation')
+        if (!this.controls) {
+          console.log('🔧 Controls missing - initializing now')
+          this.initControls()
+          this.settingsMenu.applyInitialSettings()
+          this.connectControlsToNetworking()
+        }
+        this.canvas.requestPointerLock()
+        console.log('🔒 Emergency pointer lock requested')
+      }
+      
+      // Skip countdown with F2
+      if (event.key === 'F2' && this.gameState === 'playing') {
+        console.log('⏭️ F2 pressed - skipping countdown')
+        const countdownOverlay = document.getElementById('countdown-overlay')
+        if (countdownOverlay) {
+          countdownOverlay.style.display = 'none'
+        }
+        this.canvas.requestPointerLock()
+      }
+    })
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     
     console.log('✅ Renderer initialized')
