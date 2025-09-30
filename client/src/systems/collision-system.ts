@@ -2,7 +2,6 @@ import * as THREE from 'three'
 
 export class CollisionSystem {
   private collisionObjects: THREE.Mesh[] = []
-  private raycaster = new THREE.Raycaster()
   
   // Collision detection parameters
   private readonly COLLISION_DISTANCE = 0.2 // Distance to maintain from objects

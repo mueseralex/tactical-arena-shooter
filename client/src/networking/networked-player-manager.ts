@@ -30,7 +30,7 @@ export class NetworkedPlayerManager {
     console.log(`👤 Adding networked player ${playerId}`)
     
     // Create player model
-    const playerModel = new PlayerModel()
+    const playerModel = new PlayerModel('red') // Enemy player
     playerModel.position.set(0, 0, 0) // Will be updated from server
     this.scene.add(playerModel)
 

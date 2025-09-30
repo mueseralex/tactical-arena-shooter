@@ -38,7 +38,7 @@ export class FirstPersonControls {
   private playerModel: PlayerModel
   
   // Viewport weapon system
-  private viewportWeapon: ViewportWeapon
+  private viewportWeapon!: ViewportWeapon
   
   // Settings
   private baseSensitivity = 0.002
@@ -73,7 +73,7 @@ export class FirstPersonControls {
     
     // Create player model attached to camera
     console.log('👤 Creating player model...')
-    this.playerModel = new PlayerModel(camera.parent as THREE.Scene || new THREE.Scene(), 'blue')
+    this.playerModel = new PlayerModel('blue')
     this.setupPlayerModel()
     
     // Create viewport weapon system
@@ -107,10 +107,10 @@ export class FirstPersonControls {
   private setupPlayerModel(): void {
     // Position the player model relative to the camera
     // The camera is at the player's eye level, so position model below
-    this.playerModel.setPosition(0, -this.currentHeight, 0)
+    this.playerModel.position.set(0, -this.currentHeight, 0)
     
     // Make the model follow the camera
-    this.camera.add(this.playerModel.getGroup())
+    this.camera.add(this.playerModel)
     
     console.log('✅ Player model attached to first-person camera')
   }
@@ -387,7 +387,7 @@ export class FirstPersonControls {
     )
     
     // Update player model position and crouching state
-    this.playerModel.setPosition(0, -this.currentHeight, 0)
+    this.playerModel.position.set(0, -this.currentHeight, 0)
     this.playerModel.setCrouching(this.isCrouching)
     
     // Check if player is moving for weapon sway
@@ -507,7 +507,7 @@ export class FirstPersonControls {
     
     // Dispose of player model
     if (this.playerModel) {
-      this.camera.remove(this.playerModel.getGroup())
+      this.camera.remove(this.playerModel)
       this.playerModel.dispose()
     }
     

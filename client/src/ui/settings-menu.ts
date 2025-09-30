@@ -5,7 +5,7 @@ export interface GameSettings {
 }
 
 export class SettingsMenu {
-  private settingsElement: HTMLElement
+  private settingsElement!: HTMLElement
   private isVisible = false
   private settings: GameSettings
   
@@ -17,7 +17,6 @@ export class SettingsMenu {
   private onShouldClose?: () => boolean
   
   // Debug logging
-  private debugLogs: string[] = []
   private debugLogElement?: HTMLElement
 
   constructor() {

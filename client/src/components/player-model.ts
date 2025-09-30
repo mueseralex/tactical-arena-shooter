@@ -1,7 +1,6 @@
 import * as THREE from 'three'
 
-export class PlayerModel {
-  private scene: THREE.Scene
+export class PlayerModel extends THREE.Group {
   private playerGroup: THREE.Group
   private teamColor: 'blue' | 'red'
   
@@ -10,14 +9,15 @@ export class PlayerModel {
   private readonly CAPSULE_RADIUS = 0.25
   private readonly HEAD_RADIUS = 0.15
 
-  constructor(scene: THREE.Scene, teamColor: 'blue' | 'red' = 'blue') {
-    this.scene = scene
+  constructor(teamColor: 'blue' | 'red' = 'blue') {
+    super()
     this.teamColor = teamColor
     this.playerGroup = new THREE.Group()
     this.playerGroup.name = `player-model-${teamColor}`
+    this.name = `player-model-${teamColor}`
     
     this.createPlayerModel()
-    this.scene.add(this.playerGroup)
+    this.add(this.playerGroup)
   }
 
   private createPlayerModel(): void {
@@ -209,7 +209,7 @@ export class PlayerModel {
       }
     })
     
-    this.scene.remove(this.playerGroup)
+    this.remove(this.playerGroup)
     console.log(`🧹 ${this.teamColor} player model disposed`)
   }
 }
