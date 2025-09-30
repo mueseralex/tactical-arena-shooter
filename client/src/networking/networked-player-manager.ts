@@ -73,6 +73,8 @@ export class NetworkedPlayerManager {
       return
     }
 
+    console.log(`📍 Updating player ${playerId} position: (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`)
+
     // Store the server position for interpolation
     player.lastPosition = { ...position }
     player.lastRotation = { ...rotation }
@@ -81,6 +83,8 @@ export class NetworkedPlayerManager {
     // Immediately update position (we can add interpolation later)
     player.model.position.set(position.x, position.y, position.z)
     player.model.rotation.set(rotation.x, rotation.y, rotation.z)
+    
+    console.log(`✅ Player ${playerId} model updated in scene`)
     
     console.log(`🔄 Updated player ${playerId} position to (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`)
   }

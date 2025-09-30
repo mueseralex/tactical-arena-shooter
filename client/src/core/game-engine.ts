@@ -874,16 +874,41 @@ export class GameEngine {
         console.log('🎮 Controls object exists:', !!this.controls)
         console.log('🎮 Canvas element:', !!this.canvas)
         
-        // Force request pointer lock multiple times to ensure it works
+        // Force enable controls immediately
+        this.canvas.requestPointerLock()
+        console.log('🔒 Requested pointer lock (immediate)')
+        
+        // Show click-to-play message
+        const clickToPlayElement = document.getElementById('click-to-play')
+        if (clickToPlayElement) {
+          clickToPlayElement.style.display = 'block'
+        }
+        
+        // Add click listener to canvas for manual activation
+        const activateControls = () => {
+          this.canvas.requestPointerLock()
+          console.log('🔒 Pointer lock requested via click')
+          
+          // Hide click-to-play message
+          if (clickToPlayElement) {
+            clickToPlayElement.style.display = 'none'
+          }
+        }
+        
+        this.canvas.addEventListener('click', activateControls)
+        document.addEventListener('click', activateControls)
+        
+        // Also try multiple delayed attempts
         setTimeout(() => {
           this.canvas.requestPointerLock()
-          console.log('🔒 Requested pointer lock (immediate)')
-        }, 100)
+          console.log('🔒 Requested pointer lock (500ms delay)')
+        }, 500)
         
         setTimeout(() => {
           this.canvas.requestPointerLock()
-          console.log('🔒 Requested pointer lock (delayed)')
-        }, 500)
+          console.log('🔒 Requested pointer lock (1000ms delay)')
+        }, 1000)
+        
       } else {
         console.error('❌ Controls not initialized when round started!')
       }
