@@ -22,7 +22,7 @@ export interface GameState {
     phase: 'waiting' | 'preparation' | 'active' | 'ended';
 }
 export type ClientMessage = PingMessage | PlayerPositionMessage | PlayerShootMessage | PlayerReloadMessage | RequestMatchmakingMessage;
-export type ServerMessage = PongMessage | WelcomeMessage | PlayerJoinedMessage | PlayerLeftMessage | PlayerPositionUpdateMessage | PlayerShotMessage | GameStateUpdateMessage | MatchFoundMessage;
+export type ServerMessage = PongMessage | WelcomeMessage | PlayerJoinedMessage | PlayerLeftMessage | PlayerPositionUpdateMessage | PlayerShotMessage | GameStateUpdateMessage | MatchFoundMessage | RoundStartMessage | RoundEndMessage | MatchEndMessage | PlayerHitMessage | PlayerDeathMessage;
 export interface PingMessage {
     type: 'ping';
     timestamp: number;
@@ -35,6 +35,7 @@ export interface PlayerPositionMessage {
 export interface PlayerShootMessage {
     type: 'player_shoot';
     direction: Vector3;
+    position?: Vector3;
     timestamp: number;
 }
 export interface PlayerReloadMessage {
@@ -82,6 +83,44 @@ export interface MatchFoundMessage {
     matchId: string;
     players: number[];
     gameMode: '1v1' | '2v2' | '5v5';
+}
+export interface RoundStartMessage {
+    type: 'round_start';
+    matchId: string;
+    round: number;
+    spawnPosition: Vector3;
+    health: number;
+    timeLimit: number;
+    scores: Record<number, number>;
+}
+export interface RoundEndMessage {
+    type: 'round_end';
+    matchId: string;
+    round: number;
+    winner: number | null;
+    reason: 'elimination' | 'timeout';
+    scores: Record<number, number>;
+}
+export interface MatchEndMessage {
+    type: 'match_end';
+    matchId: string;
+    winner: number | null;
+    finalScores: Record<number, number>;
+    totalRounds: number;
+}
+export interface PlayerHitMessage {
+    type: 'player_hit';
+    shooterId: number;
+    targetId: number;
+    damage: number;
+    isHeadshot: boolean;
+    newHealth: number;
+}
+export interface PlayerDeathMessage {
+    type: 'player_death';
+    killerId: number;
+    victimId: number;
+    isHeadshot: boolean;
 }
 export declare const GAME_CONFIG: {
     readonly ARENA_WIDTH: 40;

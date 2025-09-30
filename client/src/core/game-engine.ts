@@ -25,6 +25,15 @@ export class GameEngine {
   private isRunning = false
   private isPaused = false
   
+  // Match state
+  private currentHealth = 100
+  private maxHealth = 100
+  private currentRound = 0
+  private roundTimeLeft = 0
+  private roundTimer: number | null = null
+  private scores: Record<number, number> = {}
+  private isAlive = true
+  
   // Performance tracking
   private frameCount = 0
   private lastFpsUpdate = 0
@@ -235,6 +244,27 @@ export class GameEngine {
       setTimeout(() => {
         this.startGame()
       }, 1000) // Small delay for dramatic effect
+    })
+
+    // Handle competitive game events
+    this.gameClient.onRoundStartCallback((roundData) => {
+      this.handleRoundStart(roundData)
+    })
+
+    this.gameClient.onRoundEndCallback((roundData) => {
+      this.handleRoundEnd(roundData)
+    })
+
+    this.gameClient.onMatchEndCallback((matchData) => {
+      this.handleMatchEnd(matchData)
+    })
+
+    this.gameClient.onPlayerHitCallback((hitData) => {
+      this.handlePlayerHit(hitData)
+    })
+
+    this.gameClient.onPlayerDeathCallback((deathData) => {
+      this.handlePlayerDeath(deathData)
     })
     
     console.log('✅ Networking initialized')
@@ -550,10 +580,17 @@ export class GameEngine {
           const direction = new THREE.Vector3()
           this.camera.getWorldDirection(direction)
           
+          // Get camera position for hit detection
+          const position = this.camera.position
+          
           this.gameClient.sendPlayerShot({
             x: direction.x,
             y: direction.y,
             z: direction.z
+          }, {
+            x: position.x,
+            y: position.y,
+            z: position.z
           })
         }
         
@@ -586,6 +623,234 @@ export class GameEngine {
     console.log(`📐 Resized to ${width}x${height}`)
   }
 
+  // Competitive game event handlers
+  private handleRoundStart(roundData: any): void {
+    console.log(`🎯 Round ${roundData.round} started!`)
+    
+    // Update match state
+    this.currentRound = roundData.round
+    this.currentHealth = roundData.health
+    this.roundTimeLeft = roundData.timeLimit
+    this.scores = roundData.scores
+    this.isAlive = true
+    
+    // Show competitive HUD
+    const competitiveHud = document.getElementById('competitive-hud')
+    if (competitiveHud) {
+      competitiveHud.style.display = 'block'
+    }
+    
+    // Update UI
+    this.updateCompetitiveUI()
+    
+    // Teleport player to spawn position
+    if (roundData.spawnPosition && this.camera) {
+      this.camera.position.set(
+        roundData.spawnPosition.x,
+        roundData.spawnPosition.y,
+        roundData.spawnPosition.z
+      )
+      console.log(`📍 Spawned at: ${roundData.spawnPosition.x}, ${roundData.spawnPosition.y}, ${roundData.spawnPosition.z}`)
+    }
+    
+    // Start round timer
+    this.startRoundTimer()
+    
+    // Show round start message
+    this.showMatchStatus(`Round ${roundData.round} - Fight!`, 3000)
+  }
+
+  private handleRoundEnd(roundData: any): void {
+    console.log(`🏁 Round ${roundData.round} ended - Winner: ${roundData.winner}`)
+    
+    // Update scores
+    this.scores = roundData.scores
+    this.updateCompetitiveUI()
+    
+    // Stop round timer
+    if (this.roundTimer) {
+      clearInterval(this.roundTimer)
+      this.roundTimer = null
+    }
+    
+    // Show round result
+    const isWinner = roundData.winner === this.gameClient.playerID
+    const message = roundData.winner === null ? 
+      'Round Tied!' : 
+      (isWinner ? 'You Won the Round!' : 'You Lost the Round!')
+    
+    this.showMatchStatus(message, 5000)
+  }
+
+  private handleMatchEnd(matchData: any): void {
+    console.log(`🏆 Match ended - Winner: ${matchData.winner}`)
+    
+    // Stop round timer
+    if (this.roundTimer) {
+      clearInterval(this.roundTimer)
+      this.roundTimer = null
+    }
+    
+    // Show final result
+    const isWinner = matchData.winner === this.gameClient.playerID
+    const message = matchData.winner === null ? 
+      'Match Tied!' : 
+      (isWinner ? '🏆 YOU WON THE MATCH!' : '💀 YOU LOST THE MATCH!')
+    
+    this.showMatchStatus(message, 10000)
+    
+    // Hide competitive HUD after delay
+    setTimeout(() => {
+      const competitiveHud = document.getElementById('competitive-hud')
+      if (competitiveHud) {
+        competitiveHud.style.display = 'none'
+      }
+      
+      // Return to menu
+      this.gameState = 'menu'
+      this.settingsMenu.show()
+      this.settingsMenu.updateGameState(false)
+    }, 10000)
+  }
+
+  private handlePlayerHit(hitData: any): void {
+    console.log(`💥 Hit detected - Damage: ${hitData.damage}${hitData.isHeadshot ? ' (HEADSHOT!)' : ''}`)
+    
+    // Update health if we were hit
+    if (hitData.targetId === this.gameClient.playerID) {
+      this.currentHealth = hitData.newHealth
+      this.updateHealthDisplay()
+      
+      // Show hit indicator
+      this.showHitIndicator(hitData.isHeadshot)
+    }
+  }
+
+  private handlePlayerDeath(deathData: any): void {
+    console.log(`💀 Player death - Killer: ${deathData.killerId}, Victim: ${deathData.victimId}`)
+    
+    // Check if we died
+    if (deathData.victimId === this.gameClient.playerID) {
+      this.isAlive = false
+      this.currentHealth = 0
+      this.updateHealthDisplay()
+      
+      // Show death message
+      this.showMatchStatus('💀 You were eliminated!', 3000)
+      
+      // TODO: Implement spectator mode
+    } else if (deathData.killerId === this.gameClient.playerID) {
+      // We got a kill
+      this.showMatchStatus(`💀 Eliminated enemy${deathData.isHeadshot ? ' (HEADSHOT!)' : ''}!`, 2000)
+    }
+  }
+
+  private updateCompetitiveUI(): void {
+    // Update round counter
+    const roundCounter = document.getElementById('round-counter')
+    if (roundCounter) {
+      roundCounter.textContent = `Round ${this.currentRound}`
+    }
+    
+    // Update scores
+    const playerScore = document.getElementById('player-score')
+    const enemyScore = document.getElementById('enemy-score')
+    
+    if (playerScore && enemyScore) {
+      const myId = this.gameClient.playerID
+      const myScore = myId ? (this.scores[myId] || 0) : 0
+      
+      // Find enemy score
+      let enemyScoreValue = 0
+      for (const [playerId, score] of Object.entries(this.scores)) {
+        if (parseInt(playerId) !== myId) {
+          enemyScoreValue = score
+          break
+        }
+      }
+      
+      playerScore.textContent = `You: ${myScore}`
+      enemyScore.textContent = `Enemy: ${enemyScoreValue}`
+    }
+  }
+
+  private startRoundTimer(): void {
+    if (this.roundTimer) {
+      clearInterval(this.roundTimer)
+    }
+    
+    this.roundTimer = setInterval(() => {
+      this.roundTimeLeft -= 1000
+      
+      if (this.roundTimeLeft <= 0) {
+        this.roundTimeLeft = 0
+        if (this.roundTimer) {
+          clearInterval(this.roundTimer)
+          this.roundTimer = null
+        }
+      }
+      
+      // Update timer display
+      const timerElement = document.getElementById('round-timer')
+      if (timerElement) {
+        const minutes = Math.floor(this.roundTimeLeft / 60000)
+        const seconds = Math.floor((this.roundTimeLeft % 60000) / 1000)
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`
+        
+        // Change color when time is running out
+        if (this.roundTimeLeft <= 30000) { // Last 30 seconds
+          timerElement.style.color = '#f87171'
+        } else {
+          timerElement.style.color = '#fff'
+        }
+      }
+    }, 1000)
+  }
+
+  private showMatchStatus(message: string, duration: number): void {
+    const statusElement = document.getElementById('match-status')
+    if (statusElement) {
+      statusElement.textContent = message
+      statusElement.style.display = 'block'
+      
+      setTimeout(() => {
+        statusElement.style.display = 'none'
+      }, duration)
+    }
+  }
+
+  private showHitIndicator(isHeadshot: boolean): void {
+    const hitIndicator = document.getElementById('hit-indicator')
+    if (hitIndicator) {
+      hitIndicator.style.display = 'block'
+      
+      if (isHeadshot) {
+        hitIndicator.classList.add('headshot-indicator')
+      }
+      
+      setTimeout(() => {
+        hitIndicator.style.display = 'none'
+        hitIndicator.classList.remove('headshot-indicator')
+      }, 500)
+    }
+  }
+
+  private updateHealthDisplay(): void {
+    const healthElement = document.getElementById('health-value')
+    if (healthElement) {
+      healthElement.textContent = this.currentHealth.toString()
+      
+      // Change color based on health
+      if (this.currentHealth <= 25) {
+        healthElement.style.color = '#f87171' // Red
+      } else if (this.currentHealth <= 50) {
+        healthElement.style.color = '#fbbf24' // Yellow
+      } else {
+        healthElement.style.color = '#4ade80' // Green
+      }
+    }
+  }
+
   // Cleanup method for proper disposal
   dispose(): void {
     this.stop()
@@ -593,6 +858,11 @@ export class GameEngine {
     // Clean up networking
     if (this.positionUpdateInterval) {
       clearInterval(this.positionUpdateInterval)
+    }
+    
+    // Clean up round timer
+    if (this.roundTimer) {
+      clearInterval(this.roundTimer)
     }
     
     if (this.gameClient) {

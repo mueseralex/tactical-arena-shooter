@@ -43,6 +43,11 @@ export type ServerMessage =
   | PlayerShotMessage
   | GameStateUpdateMessage
   | MatchFoundMessage
+  | RoundStartMessage
+  | RoundEndMessage
+  | MatchEndMessage
+  | PlayerHitMessage
+  | PlayerDeathMessage
 
 // Client to Server messages
 export interface PingMessage {
@@ -59,6 +64,7 @@ export interface PlayerPositionMessage {
 export interface PlayerShootMessage {
   type: 'player_shoot'
   direction: Vector3
+  position?: Vector3
   timestamp: number
 }
 
@@ -117,6 +123,49 @@ export interface MatchFoundMessage {
   matchId: string
   players: number[]
   gameMode: '1v1' | '2v2' | '5v5'
+}
+
+export interface RoundStartMessage {
+  type: 'round_start'
+  matchId: string
+  round: number
+  spawnPosition: Vector3
+  health: number
+  timeLimit: number
+  scores: Record<number, number>
+}
+
+export interface RoundEndMessage {
+  type: 'round_end'
+  matchId: string
+  round: number
+  winner: number | null
+  reason: 'elimination' | 'timeout'
+  scores: Record<number, number>
+}
+
+export interface MatchEndMessage {
+  type: 'match_end'
+  matchId: string
+  winner: number | null
+  finalScores: Record<number, number>
+  totalRounds: number
+}
+
+export interface PlayerHitMessage {
+  type: 'player_hit'
+  shooterId: number
+  targetId: number
+  damage: number
+  isHeadshot: boolean
+  newHealth: number
+}
+
+export interface PlayerDeathMessage {
+  type: 'player_death'
+  killerId: number
+  victimId: number
+  isHeadshot: boolean
 }
 
 // Game constants

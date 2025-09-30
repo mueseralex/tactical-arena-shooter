@@ -22,14 +22,28 @@ let playerIdCounter = 0
 const matchmakingQueue: Array<{playerId: number, gameMode: string, queueTime: number}> = []
 let matchIdCounter = 0
 
+// Active matches
+const activeMatches = new Map()
+
+// Spawn points for 1v1 (opposite sides of arena)
+const SPAWN_POINTS = {
+  player1: { x: -15, y: 1.8, z: 0 }, // Left side spawn
+  player2: { x: 15, y: 1.8, z: 0 }   // Right side spawn
+}
+
 wss.on('connection', (ws, request) => {
   const playerId = ++playerIdCounter
   const playerInfo = {
     id: playerId,
     ws,
-    position: { x: 0, y: 5, z: 10 },
+    position: { x: 0, y: 1.8, z: 0 },
     health: 100,
+    maxHealth: 100,
     isAlive: true,
+    matchId: null,
+    team: null,
+    kills: 0,
+    deaths: 0,
     connectedAt: new Date()
   }
   
@@ -116,13 +130,9 @@ function handlePlayerMessage(playerId: number, message: any) {
       break
       
     case 'player_shoot':
-      // Handle shooting event
+      // Handle shooting event with hit detection
       console.log(`💥 Player ${playerId} fired weapon`)
-      broadcast({
-        type: 'player_shot',
-        playerId: playerId,
-        timestamp: Date.now()
-      }, playerId)
+      handlePlayerShoot(playerId, message)
       break
       
     case 'request_matchmaking':
@@ -178,24 +188,401 @@ function findMatches() {
     const matchId = `match_${++matchIdCounter}_${Date.now()}`
     console.log(`⚔️ Match found! ${matchId}: Player ${player1.playerId} vs Player ${player2.playerId}`)
     
-    // Notify both players
-    const matchMessage = {
-      type: 'match_found',
-      matchId: matchId,
+    // Create match data
+    const matchData = {
+      id: matchId,
       players: [player1.playerId, player2.playerId],
-      gameMode: '1v1'
+      gameMode: '1v1',
+      currentRound: 1,
+      maxRounds: 5, // First to 3 wins (best of 5)
+      roundTimeLimit: 120000, // 2 minutes in milliseconds
+      scores: {
+        [player1.playerId]: 0,
+        [player2.playerId]: 0
+      },
+      roundStartTime: null,
+      roundEndTime: null,
+      status: 'starting',
+      winner: null
     }
     
-    const player1Ws = connectedPlayers.get(player1.playerId)?.ws
-    const player2Ws = connectedPlayers.get(player2.playerId)?.ws
+    activeMatches.set(matchId, matchData)
     
-    if (player1Ws) {
-      player1Ws.send(JSON.stringify(matchMessage))
-    }
-    if (player2Ws) {
-      player2Ws.send(JSON.stringify(matchMessage))
+    // Assign players to match and teams
+    const p1 = connectedPlayers.get(player1.playerId)
+    const p2 = connectedPlayers.get(player2.playerId)
+    
+    if (p1 && p2) {
+      p1.matchId = matchId
+      p1.team = 'team1'
+      p2.matchId = matchId
+      p2.team = 'team2'
+      
+      // Start the match
+      startMatch(matchId)
     }
   }
+}
+
+function startMatch(matchId: string) {
+  const match = activeMatches.get(matchId)
+  if (!match) return
+  
+  console.log(`🚀 Starting match ${matchId}`)
+  
+  // Start first round
+  startRound(matchId)
+}
+
+function startRound(matchId: string) {
+  const match = activeMatches.get(matchId)
+  if (!match) return
+  
+  console.log(`🎯 Starting round ${match.currentRound} for match ${matchId}`)
+  
+  // Reset players for new round
+  match.players.forEach((playerId: number, index: number) => {
+    const player = connectedPlayers.get(playerId)
+    if (!player) return
+    
+    // Reset health and position
+    player.health = player.maxHealth
+    player.isAlive = true
+    
+    // Assign spawn positions (opposite sides)
+    const spawnPoint = index === 0 ? SPAWN_POINTS.player1 : SPAWN_POINTS.player2
+    player.position = { ...spawnPoint }
+    
+    // Send round start message with spawn position
+    player.ws.send(JSON.stringify({
+      type: 'round_start',
+      matchId: matchId,
+      round: match.currentRound,
+      spawnPosition: spawnPoint,
+      health: player.health,
+      timeLimit: match.roundTimeLimit,
+      scores: match.scores
+    }))
+    
+    // Send position update to other players
+    broadcast({
+      type: 'player_position_update',
+      playerId: playerId,
+      position: player.position,
+      rotation: { x: 0, y: 0, z: 0 }
+    }, playerId)
+  })
+  
+  // Set round timer
+  match.roundStartTime = Date.now()
+  match.roundEndTime = match.roundStartTime + match.roundTimeLimit
+  match.status = 'active'
+  
+  // Start round timer
+  setTimeout(() => {
+    endRound(matchId, 'timeout')
+  }, match.roundTimeLimit)
+}
+
+function handlePlayerShoot(shooterId: number, message: any) {
+  const shooter = connectedPlayers.get(shooterId)
+  if (!shooter || !shooter.matchId || !shooter.isAlive) return
+  
+  const match = activeMatches.get(shooter.matchId)
+  if (!match || match.status !== 'active') return
+  
+  // Broadcast shot event
+  broadcast({
+    type: 'player_shot',
+    playerId: shooterId,
+    timestamp: Date.now()
+  }, shooterId)
+  
+  // Perform hit detection
+  const hitResult = performHitDetection(shooterId, message.direction, message.position || shooter.position)
+  
+  if (hitResult.hit && hitResult.targetId !== undefined) {
+    handlePlayerHit(shooterId, hitResult.targetId, hitResult.damage, hitResult.isHeadshot)
+  }
+}
+
+function performHitDetection(shooterId: number, direction: any, shooterPosition: any) {
+  const shooter = connectedPlayers.get(shooterId)
+  if (!shooter) return { hit: false, targetId: undefined, damage: 0, isHeadshot: false, distance: 0 }
+  
+  const match = activeMatches.get(shooter.matchId!)
+  if (!match) return { hit: false, targetId: undefined, damage: 0, isHeadshot: false, distance: 0 }
+  
+  // Check all other players in the match
+  for (const targetId of match.players) {
+    if (targetId === shooterId) continue
+    
+    const target = connectedPlayers.get(targetId)
+    if (!target || !target.isAlive) continue
+    
+    // Simple distance-based hit detection (can be improved with proper raycasting)
+    const distance = calculateDistance(shooterPosition, target.position)
+    const maxRange = 50 // Maximum weapon range
+    
+    if (distance <= maxRange) {
+      // Calculate if shot is aimed at target (simplified)
+      const aimAccuracy = calculateAimAccuracy(shooterPosition, target.position, direction)
+      
+      if (aimAccuracy > 0.8) { // 80% accuracy threshold
+        // Determine if headshot (simplified - based on aim height)
+        const isHeadshot = Math.abs(shooterPosition.y - target.position.y) < 0.3 && aimAccuracy > 0.95
+        
+        // Calculate damage
+        let damage = 35 // Base damage
+        if (isHeadshot) {
+          damage = 100 // One-shot headshot
+        } else {
+          // Distance-based damage falloff
+          const damageFalloff = Math.max(0.5, 1 - (distance / maxRange))
+          damage = Math.floor(damage * damageFalloff)
+        }
+        
+        return {
+          hit: true,
+          targetId: targetId,
+          damage: damage,
+          isHeadshot: isHeadshot,
+          distance: distance
+        }
+      }
+    }
+  }
+  
+  return { hit: false, targetId: undefined, damage: 0, isHeadshot: false, distance: 0 }
+}
+
+function calculateDistance(pos1: any, pos2: any): number {
+  const dx = pos1.x - pos2.x
+  const dy = pos1.y - pos2.y
+  const dz = pos1.z - pos2.z
+  return Math.sqrt(dx * dx + dy * dy + dz * dz)
+}
+
+function calculateAimAccuracy(shooterPos: any, targetPos: any, aimDirection: any): number {
+  // Calculate vector from shooter to target
+  const toTarget = {
+    x: targetPos.x - shooterPos.x,
+    y: targetPos.y - shooterPos.y,
+    z: targetPos.z - shooterPos.z
+  }
+  
+  // Normalize vectors
+  const targetLength = Math.sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y + toTarget.z * toTarget.z)
+  const aimLength = Math.sqrt(aimDirection.x * aimDirection.x + aimDirection.y * aimDirection.y + aimDirection.z * aimDirection.z)
+  
+  if (targetLength === 0 || aimLength === 0) return 0
+  
+  const normalizedTarget = {
+    x: toTarget.x / targetLength,
+    y: toTarget.y / targetLength,
+    z: toTarget.z / targetLength
+  }
+  
+  const normalizedAim = {
+    x: aimDirection.x / aimLength,
+    y: aimDirection.y / aimLength,
+    z: aimDirection.z / aimLength
+  }
+  
+  // Calculate dot product (cosine of angle between vectors)
+  const dotProduct = normalizedTarget.x * normalizedAim.x + 
+                    normalizedTarget.y * normalizedAim.y + 
+                    normalizedTarget.z * normalizedAim.z
+  
+  // Convert to 0-1 range (1 = perfect aim, 0 = opposite direction)
+  return Math.max(0, dotProduct)
+}
+
+function handlePlayerHit(shooterId: number, targetId: number, damage: number, isHeadshot: boolean) {
+  const shooter = connectedPlayers.get(shooterId)
+  const target = connectedPlayers.get(targetId)
+  
+  if (!shooter || !target || !target.isAlive) return
+  
+  // Apply damage
+  target.health = Math.max(0, target.health - damage)
+  
+  console.log(`💥 Player ${shooterId} hit Player ${targetId} for ${damage} damage${isHeadshot ? ' (HEADSHOT!)' : ''} - Health: ${target.health}`)
+  
+  // Broadcast hit event
+  broadcast({
+    type: 'player_hit',
+    shooterId: shooterId,
+    targetId: targetId,
+    damage: damage,
+    isHeadshot: isHeadshot,
+    newHealth: target.health
+  })
+  
+  // Check if player died
+  if (target.health <= 0) {
+    handlePlayerDeath(shooterId, targetId)
+  }
+}
+
+function handlePlayerDeath(killerId: number, victimId: number) {
+  const killer = connectedPlayers.get(killerId)
+  const victim = connectedPlayers.get(victimId)
+  
+  if (!killer || !victim) return
+  
+  // Update player stats
+  victim.isAlive = false
+  victim.deaths++
+  killer.kills++
+  
+  console.log(`💀 Player ${victimId} eliminated by Player ${killerId}`)
+  
+  // Broadcast death event
+  broadcast({
+    type: 'player_death',
+    killerId: killerId,
+    victimId: victimId,
+    isHeadshot: victim.health <= -65 // Headshot if overkill damage
+  })
+  
+  // Check if round should end
+  if (victim.matchId) {
+    checkRoundEnd(victim.matchId, 'elimination')
+  }
+}
+
+function endRound(matchId: string, reason: 'elimination' | 'timeout') {
+  const match = activeMatches.get(matchId)
+  if (!match || match.status !== 'active') return
+  
+  match.status = 'round_ended'
+  
+  console.log(`🏁 Round ${match.currentRound} ended (${reason}) for match ${matchId}`)
+  
+  // Determine round winner
+  let roundWinner = null
+  
+  if (reason === 'elimination') {
+    // Winner is the alive player
+    for (const playerId of match.players) {
+      const player = connectedPlayers.get(playerId)
+      if (player && player.isAlive) {
+        roundWinner = playerId
+        break
+      }
+    }
+  } else if (reason === 'timeout') {
+    // Winner is player with most health
+    let highestHealth = -1
+    for (const playerId of match.players) {
+      const player = connectedPlayers.get(playerId)
+      if (player && player.health > highestHealth) {
+        highestHealth = player.health
+        roundWinner = playerId
+      }
+    }
+    
+    // Check for tie
+    const playersWithHighestHealth = match.players.filter((id: number) => {
+      const player = connectedPlayers.get(id)
+      return player && player.health === highestHealth
+    })
+    
+    if (playersWithHighestHealth.length > 1) {
+      roundWinner = null // Tie
+    }
+  }
+  
+  // Update scores
+  if (roundWinner) {
+    match.scores[roundWinner]++
+  }
+  
+  // Broadcast round end
+  broadcast({
+    type: 'round_end',
+    matchId: matchId,
+    round: match.currentRound,
+    winner: roundWinner,
+    reason: reason,
+    scores: match.scores
+  })
+  
+  // Check if match is over
+  const maxScore = Math.max(...Object.values(match.scores).map(score => Number(score)))
+  const requiredWins = Math.ceil(match.maxRounds / 2) // First to 3 in best of 5
+  
+  if (maxScore >= requiredWins) {
+    endMatch(matchId)
+  } else {
+    // Start next round after delay
+    match.currentRound++
+    setTimeout(() => {
+      startRound(matchId)
+    }, 5000) // 5 second delay between rounds
+  }
+}
+
+function checkRoundEnd(matchId: string, reason: 'elimination' | 'timeout') {
+  const match = activeMatches.get(matchId)
+  if (!match || match.status !== 'active') return
+  
+  // Count alive players
+  const alivePlayers = match.players.filter((id: number) => {
+    const player = connectedPlayers.get(id)
+    return player && player.isAlive
+  })
+  
+  // End round if only one or no players alive
+  if (alivePlayers.length <= 1) {
+    endRound(matchId, reason)
+  }
+}
+
+function endMatch(matchId: string) {
+  const match = activeMatches.get(matchId)
+  if (!match) return
+  
+  // Determine match winner
+  let matchWinner = null
+  let highestScore = -1
+  
+  for (const [playerId, score] of Object.entries(match.scores)) {
+    const numericScore = Number(score)
+    if (numericScore > highestScore) {
+      highestScore = numericScore
+      matchWinner = parseInt(playerId)
+    }
+  }
+  
+  match.winner = matchWinner
+  match.status = 'completed'
+  
+  console.log(`🏆 Match ${matchId} completed! Winner: Player ${matchWinner} (${highestScore} rounds)`)
+  
+  // Broadcast match end
+  broadcast({
+    type: 'match_end',
+    matchId: matchId,
+    winner: matchWinner,
+    finalScores: match.scores,
+    totalRounds: match.currentRound
+  })
+  
+  // Clean up match and reset players
+  match.players.forEach((playerId: number) => {
+    const player = connectedPlayers.get(playerId)
+    if (player) {
+      player.matchId = null
+      player.team = null
+      player.health = player.maxHealth
+      player.isAlive = true
+    }
+  })
+  
+  // Remove match from active matches
+  activeMatches.delete(matchId)
 }
 
 function broadcast(message: any, excludePlayerId?: number) {

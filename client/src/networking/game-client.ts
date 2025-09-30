@@ -15,6 +15,11 @@ export class GameClient {
   private onPlayerShot?: (playerId: number) => void
   private onConnectionStatusChange?: (connected: boolean) => void
   private onMatchFound?: (matchData: any) => void
+  private onRoundStart?: (roundData: any) => void
+  private onRoundEnd?: (roundData: any) => void
+  private onMatchEnd?: (matchData: any) => void
+  private onPlayerHit?: (hitData: any) => void
+  private onPlayerDeath?: (deathData: any) => void
 
   constructor() {
     console.log('🌐 GameClient initialized')
@@ -120,6 +125,31 @@ export class GameClient {
         this.onMatchFound?.(message)
         break
         
+      case 'round_start':
+        console.log(`🎯 Round ${message.round} started!`)
+        this.onRoundStart?.(message)
+        break
+        
+      case 'round_end':
+        console.log(`🏁 Round ${message.round} ended - Winner: ${message.winner}`)
+        this.onRoundEnd?.(message)
+        break
+        
+      case 'match_end':
+        console.log(`🏆 Match ended - Winner: ${message.winner}`)
+        this.onMatchEnd?.(message)
+        break
+        
+      case 'player_hit':
+        console.log(`💥 Player ${message.targetId} hit for ${message.damage} damage${message.isHeadshot ? ' (HEADSHOT!)' : ''}`)
+        this.onPlayerHit?.(message)
+        break
+        
+      case 'player_death':
+        console.log(`💀 Player ${message.victimId} eliminated by Player ${message.killerId}${message.isHeadshot ? ' (HEADSHOT!)' : ''}`)
+        this.onPlayerDeath?.(message)
+        break
+        
       case 'pong':
         // Handle ping response for latency measurement
         if (message.timestamp) {
@@ -156,10 +186,11 @@ export class GameClient {
     })
   }
 
-  sendPlayerShot(direction: Vector3): void {
+  sendPlayerShot(direction: Vector3, position?: Vector3): void {
     this.sendMessage({
       type: 'player_shoot',
       direction: direction,
+      position: position,
       timestamp: Date.now()
     })
   }
@@ -202,6 +233,26 @@ export class GameClient {
 
   onMatchFoundCallback(callback: (matchData: any) => void): void {
     this.onMatchFound = callback
+  }
+
+  onRoundStartCallback(callback: (roundData: any) => void): void {
+    this.onRoundStart = callback
+  }
+
+  onRoundEndCallback(callback: (roundData: any) => void): void {
+    this.onRoundEnd = callback
+  }
+
+  onMatchEndCallback(callback: (matchData: any) => void): void {
+    this.onMatchEnd = callback
+  }
+
+  onPlayerHitCallback(callback: (hitData: any) => void): void {
+    this.onPlayerHit = callback
+  }
+
+  onPlayerDeathCallback(callback: (deathData: any) => void): void {
+    this.onPlayerDeath = callback
   }
 
   // Getters
