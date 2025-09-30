@@ -304,8 +304,11 @@ export class GameEngine {
     })
     
     this.gameClient.onPlayerPositionUpdateCallback((playerId, position, rotation) => {
-      console.log(`📍 Received position update for player ${playerId}:`, position, rotation)
+      console.log(`📍 CRITICAL: Received position update for player ${playerId}:`, position, rotation)
+      console.log(`📍 CRITICAL: NetworkedPlayerManager exists:`, !!this.networkedPlayerManager)
+      console.log(`📍 CRITICAL: Calling updatePlayerPosition now...`)
       this.networkedPlayerManager.updatePlayerPosition(playerId, position, rotation)
+      console.log(`📍 CRITICAL: updatePlayerPosition call completed`)
     })
     
     this.gameClient.onPlayerShotCallback((playerId) => {
