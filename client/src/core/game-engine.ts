@@ -62,8 +62,10 @@ export class GameEngine {
       console.log('💡 Initializing lighting...')
       this.initLighting()
       
-      // Don't initialize game elements in menu state
-      console.log('🎮 Basic engine initialized - game elements will load when starting match')
+      console.log('🏟️ Initializing arena...')
+      this.initArena()
+      
+      console.log('🎮 Basic engine initialized - ready for gameplay')
       
       console.log('⚙️ Initializing settings menu...')
       this.initSettingsMenu()
@@ -78,6 +80,10 @@ export class GameEngine {
       // Initialize clock for timing
       console.log('⏰ Initializing clock...')
       this.clock = new THREE.Clock()
+      
+      // Start the render loop immediately so we can see the arena
+      console.log('🎬 Starting render loop...')
+      this.start()
       
       console.log('✅ Game engine initialization completed successfully')
     } catch (error) {
@@ -383,16 +389,20 @@ export class GameEngine {
   }
 
   private update(deltaTime: number): void {
-    // Update first-person controls
-    this.controls.update(deltaTime)
+    // Update first-person controls (only if initialized)
+    if (this.controls) {
+      this.controls.update(deltaTime)
+    }
     
     // Update networked players
     if (this.networkedPlayerManager) {
       this.networkedPlayerManager.update(deltaTime)
     }
     
-    // Update demo player model (walking animation)
-    this.demoPlayerModel.update(deltaTime)
+    // Update demo player model (only if it exists)
+    if (this.demoPlayerModel) {
+      this.demoPlayerModel.update(deltaTime)
+    }
     
     // Game logic updates will go here
     // Arena and cover objects are now static - no updates needed
@@ -448,12 +458,6 @@ export class GameEngine {
     
     // Initialize game elements if not already done
     if (!this.isGameInitialized) {
-      console.log('🏟️ Initializing arena...')
-      this.initArena()
-      
-      console.log('🤖 Initializing demo player...')
-      this.initDemoPlayer()
-      
       console.log('🎮 Initializing controls...')
       this.initControls()
       
@@ -494,9 +498,6 @@ export class GameEngine {
     this.showPracticeStartCountdown(() => {
       if (!this.isGameInitialized) {
         console.log('🚀 Initializing practice components...')
-        
-        console.log('🏟️ Initializing arena...')
-        this.initArena()
         
         console.log('🎮 Initializing controls...')
         this.initControls()

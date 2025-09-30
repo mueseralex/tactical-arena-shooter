@@ -93,35 +93,11 @@ export class SettingsMenu {
                     <span class="server-players">Players</span>
                     <span class="server-status">Status</span>
                   </div>
-                  <div class="server-item" data-server="us-east-1">
-                    <span class="server-name">🇺🇸 US East (Virginia)</span>
-                    <span class="server-ping ping-good">23ms</span>
-                    <span class="server-players">127/200</span>
-                    <span class="server-status status-online">Online</span>
-                  </div>
-                  <div class="server-item" data-server="us-west-1">
-                    <span class="server-name">🇺🇸 US West (California)</span>
-                    <span class="server-ping ping-ok">45ms</span>
-                    <span class="server-players">89/200</span>
-                    <span class="server-status status-online">Online</span>
-                  </div>
-                  <div class="server-item" data-server="eu-west-1">
-                    <span class="server-name">🇪🇺 EU West (London)</span>
-                    <span class="server-ping ping-high">78ms</span>
-                    <span class="server-players">156/200</span>
-                    <span class="server-status status-online">Online</span>
-                  </div>
-                  <div class="server-item" data-server="ap-southeast-1">
-                    <span class="server-name">🇸🇬 Asia Pacific (Singapore)</span>
-                    <span class="server-ping ping-very-high">142ms</span>
-                    <span class="server-players">67/200</span>
-                    <span class="server-status status-online">Online</span>
-                  </div>
-                  <div class="server-item server-selected" data-server="us-east-1-selected">
-                    <span class="server-name">🇺🇸 US East #2 (Selected)</span>
-                    <span class="server-ping ping-good">19ms</span>
-                    <span class="server-players">98/200</span>
-                    <span class="server-status status-online">Online</span>
+                  <div class="server-item server-selected" data-server="railway-main">
+                    <span class="server-name">🚂 Railway Main Server</span>
+                    <span class="server-ping">--ms</span>
+                    <span class="server-players">--/--</span>
+                    <span class="server-status">🔄</span>
                   </div>
                 </div>
               </div>
@@ -1063,32 +1039,40 @@ export class SettingsMenu {
     console.log('📊 Updating server list with real data:', serverData)
     
     // Update the Railway Main Server entry
-    const serverItems = document.querySelectorAll('.server-item')
-    if (serverItems.length > 0) {
-      const mainServer = serverItems[0] as HTMLElement
-      
+    const railwayServer = this.settingsElement.querySelector('[data-server="railway-main"]') as HTMLElement
+    if (railwayServer) {
       // Update player count
-      const playerCountElement = mainServer.querySelector('.server-players')
+      const playerCountElement = railwayServer.querySelector('.server-players')
       if (playerCountElement) {
         playerCountElement.textContent = `${serverData.playerCount}/${serverData.maxPlayers}`
       }
       
       // Update ping
-      const pingElement = mainServer.querySelector('.server-ping')
+      const pingElement = railwayServer.querySelector('.server-ping')
       if (pingElement) {
         pingElement.textContent = `${serverData.ping}ms`
+        
+        // Add ping color classes
+        pingElement.className = 'server-ping'
+        if (serverData.ping <= 30) {
+          pingElement.classList.add('ping-excellent')
+        } else if (serverData.ping <= 60) {
+          pingElement.classList.add('ping-good')
+        } else if (serverData.ping <= 100) {
+          pingElement.classList.add('ping-ok')
+        } else {
+          pingElement.classList.add('ping-high')
+        }
       }
       
       // Update status indicator
-      const statusElement = mainServer.querySelector('.server-status')
+      const statusElement = railwayServer.querySelector('.server-status')
       if (statusElement) {
         statusElement.textContent = serverData.status === 'online' ? '🟢' : '🔴'
       }
       
-      // Update match info when server is selected
-      if (mainServer.classList.contains('selected')) {
-        this.updateMatchInfo(serverData)
-      }
+      // Update match info since Railway server is always selected
+      this.updateMatchInfo(serverData)
     }
   }
 
