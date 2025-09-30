@@ -64,31 +64,53 @@ export class CollisionSystem {
     // Try to slide along walls by testing individual axis movements
     const validPosition = currentPosition.clone()
     
-    // ALWAYS allow Y movement first (jumping/falling) - this prevents getting stuck
-    const testY = new THREE.Vector3(currentPosition.x, newPosition.y, currentPosition.z)
-    if (!this.checkCollision(testY, radius)) {
-      validPosition.y = newPosition.y
-    }
-    
-    // Test X movement with the new Y position
-    const testX = new THREE.Vector3(newPosition.x, validPosition.y, currentPosition.z)
+    // Test horizontal movement first (X and Z)
+    const testX = new THREE.Vector3(newPosition.x, currentPosition.y, currentPosition.z)
     if (!this.checkCollision(testX, radius)) {
       validPosition.x = newPosition.x
     }
     
-    // Test Z movement with the current valid X,Y position
-    const testZ = new THREE.Vector3(validPosition.x, validPosition.y, newPosition.z)
+    const testZ = new THREE.Vector3(validPosition.x, currentPosition.y, newPosition.z)
     if (!this.checkCollision(testZ, radius)) {
       validPosition.z = newPosition.z
     }
     
-    // If player is moving upward and there's horizontal collision, 
-    // allow them to "climb over" low obstacles
-    if (newPosition.y > currentPosition.y && validPosition.y > currentPosition.y) {
-      const climbTestHeight = validPosition.y + 0.5 // Try climbing a bit higher
-      const climbTest = new THREE.Vector3(newPosition.x, climbTestHeight, newPosition.z)
-      if (!this.checkCollision(climbTest, radius)) {
-        return new THREE.Vector3(newPosition.x, climbTestHeight, newPosition.z)
+    // Test Y movement (jumping/falling) only if horizontal position is valid
+    const testY = new THREE.Vector3(validPosition.x, newPosition.y, validPosition.z)
+    if (!this.checkCollision(testY, radius)) {
+      validPosition.y = newPosition.y
+    } else if (newPosition.y < currentPosition.y) {
+      // Always allow falling/crouching
+      validPosition.y = newPosition.y
+    }
+    
+    // Prevent getting inside objects by checking if we're too close to any collision object
+    for (const obj of this.collisionObjects) {
+      const objBox = new THREE.Box3().setFromObject(obj)
+      const playerBox = new THREE.Box3().setFromCenterAndSize(
+        validPosition,
+        new THREE.Vector3(radius * 2, 3.6, radius * 2) // Player height
+      )
+      
+      // If player would be inside the object, push them out
+      if (objBox.intersectsBox(playerBox)) {
+        const objCenter = objBox.getCenter(new THREE.Vector3())
+        const playerCenter = validPosition.clone()
+        
+        // Calculate push direction (away from object center)
+        const pushDirection = playerCenter.clone().sub(objCenter).normalize()
+        
+        // Only push horizontally, don't affect Y position unless falling
+        if (Math.abs(pushDirection.x) > Math.abs(pushDirection.z)) {
+          validPosition.x = objCenter.x + (objBox.max.x - objBox.min.x) / 2 * Math.sign(pushDirection.x) + radius * Math.sign(pushDirection.x)
+        } else {
+          validPosition.z = objCenter.z + (objBox.max.z - objBox.min.z) / 2 * Math.sign(pushDirection.z) + radius * Math.sign(pushDirection.z)
+        }
+        
+        // If player is above the object and falling, let them land on top
+        if (validPosition.y > objBox.max.y && newPosition.y <= currentPosition.y) {
+          validPosition.y = Math.max(objBox.max.y + 0.1, newPosition.y)
+        }
       }
     }
     
