@@ -1,4 +1,4 @@
-import { Player, ClientMessage, ServerMessage, Vector3 } from '../../../shared/types'
+import { Player, ClientMessage, ServerMessage, Vector3 } from '../types/shared'
 
 export class GameClient {
   private ws: WebSocket | null = null

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { PlayerModel } from '../components/player-model'
-import { Vector3 } from '../../../shared/types'
+import { Vector3 } from '../types/shared'
 
 export interface NetworkedPlayer {
   id: number
