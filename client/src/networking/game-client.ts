@@ -112,10 +112,7 @@ export class GameClient {
         break
         
       case 'player_position_update':
-        // Log occasional position updates
-        if (Math.random() < 0.05) { // 5% of the time
-          console.log(`📍 Position update for player ${message.playerId}:`, message.position)
-        }
+        // Position updates are handled silently (logged in NetworkedPlayerManager)
         this.onPlayerPositionUpdate?.(message.playerId, message.position!, message.rotation!)
         break
         

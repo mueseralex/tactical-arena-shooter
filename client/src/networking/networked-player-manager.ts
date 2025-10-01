@@ -9,6 +9,7 @@ export interface NetworkedPlayer {
   lastRotation: Vector3
   lastUpdate: number
   isAlive: boolean
+  updateCount?: number
 }
 
 export class NetworkedPlayerManager {
@@ -78,10 +79,16 @@ export class NetworkedPlayerManager {
       return
     }
     
-    // Log first position update for this player
-    const isFirstUpdate = player.lastUpdate === 0 || Date.now() - player.lastUpdate > 5000
-    if (isFirstUpdate) {
-      console.log(`📍 First position update for player ${playerId}:`, position)
+    // Track update count for this player
+    if (!player.updateCount) {
+      player.updateCount = 0
+    }
+    player.updateCount++
+    
+    // Log first few updates and then periodically
+    if (player.updateCount <= 3 || player.updateCount % 100 === 0) {
+      console.log(`📍 Position update #${player.updateCount} for player ${playerId}:`, 
+        { x: position.x.toFixed(1), y: position.y.toFixed(1), z: position.z.toFixed(1) })
     }
     
     // Direct position update

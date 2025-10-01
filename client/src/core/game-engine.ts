@@ -755,8 +755,9 @@ export class GameEngine {
       }
     })
     
-    // Set up position update callback (Python script style - simple and direct)
+    // Set up position update callback
     let lastPositionSent = 0
+    let positionSendCount = 0
     const positionSendRate = 50 // 20 updates per second
     
     this.controls.setPositionCallback((position, rotation) => {
@@ -764,10 +765,25 @@ export class GameEngine {
         const now = Date.now()
         if (now - lastPositionSent >= positionSendRate) {
           lastPositionSent = now
+          positionSendCount++
+          
+          // Log first few position sends to confirm it's working
+          if (positionSendCount <= 3 || positionSendCount % 100 === 0) {
+            console.log(`📤 Sending position #${positionSendCount}:`, { x: position.x.toFixed(1), y: position.y.toFixed(1), z: position.z.toFixed(1) })
+          }
+          
           this.gameClient.sendPlayerPosition(
             { x: position.x, y: position.y, z: position.z },
             { x: rotation.x, y: rotation.y, z: rotation.z }
           )
+        }
+      } else if (!this.gameClient.connected) {
+        if (positionSendCount === 0) {
+          console.warn('⚠️ Position callback fired but client not connected')
+        }
+      } else if (this.gameState !== 'playing') {
+        if (positionSendCount === 0) {
+          console.warn(`⚠️ Position callback fired but gameState is '${this.gameState}' not 'playing'`)
         }
       }
     })
@@ -796,7 +812,16 @@ export class GameEngine {
 
   // Competitive game event handlers
   private handleRoundStart(roundData: any): void {
-    console.log(`🎯 Round ${roundData.round} starting!`, roundData)
+    console.log(`🎯 Round ${roundData.round} starting!`)
+    console.log(`🎮 Game state: ${this.gameState}`)
+    console.log(`🔌 Client connected: ${this.gameClient.connected}`)
+    console.log(`🎮 Controls initialized: ${!!this.controls}`)
+    
+    // Ensure game state is playing
+    if (this.gameState !== 'playing') {
+      console.log('🔧 Setting game state to playing')
+      this.gameState = 'playing'
+    }
     
     // CRITICAL: Ensure controls are initialized before doing anything
     if (!this.controls) {
