@@ -796,16 +796,6 @@ export class GameEngine {
     })
     
     console.log('✅ CRITICAL: Controls connected to networking - callback should be set')
-    console.log('🚨 CRITICAL: Testing position callback by calling it manually...')
-    
-    // Test the callback manually
-    if (this.controls) {
-      console.log('🚨 CRITICAL: Manually triggering position update to test callback')
-      // This should trigger our debug messages
-      this.controls.setPositionCallback((pos, rot) => {
-        console.log('🚨 CRITICAL: MANUAL TEST CALLBACK TRIGGERED!', pos, rot)
-      })
-    }
   }
 
   handleResize(): void {
