@@ -8,6 +8,10 @@ export class PlayerModel extends THREE.Group {
   private readonly PLAYER_HEIGHT = 1.8 // Raised height for better proportions
   private readonly CAPSULE_RADIUS = 0.25
   private readonly HEAD_RADIUS = 0.15
+  
+  // Debug hitbox visualization
+  private bodyHitbox?: THREE.Mesh
+  private headHitbox?: THREE.Mesh
 
   constructor(teamColor: 'blue' | 'red' = 'blue') {
     super()
@@ -17,6 +21,7 @@ export class PlayerModel extends THREE.Group {
     this.name = `player-model-${teamColor}`
     
     this.createPlayerModel()
+    this.createHitboxVisualization()
     this.add(this.playerGroup)
   }
 
@@ -132,6 +137,36 @@ export class PlayerModel extends THREE.Group {
   }
 
   // Crouching animation
+  private createHitboxVisualization(): void {
+    // Body hitbox - green wireframe box from ground to shoulders
+    const bodyHeight = 1.6 // Body from 0 to 1.6m
+    const bodyGeometry = new THREE.BoxGeometry(0.6, bodyHeight, 0.6)
+    const bodyMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ff00,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.5
+    })
+    this.bodyHitbox = new THREE.Mesh(bodyGeometry, bodyMaterial)
+    this.bodyHitbox.position.set(0, bodyHeight / 2, 0) // Center at middle of body height
+    this.add(this.bodyHitbox)
+    
+    // Head hitbox - red wireframe box from shoulders to top
+    const headHeight = 0.2 // Head from 1.6m to 1.8m
+    const headGeometry = new THREE.BoxGeometry(0.4, headHeight, 0.4)
+    const headMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.7
+    })
+    this.headHitbox = new THREE.Mesh(headGeometry, headMaterial)
+    this.headHitbox.position.set(0, 1.6 + (headHeight / 2), 0) // Position at head height
+    this.add(this.headHitbox)
+    
+    console.log('🎯 Hitbox visualization created - Body: green (0-1.6m), Head: red (1.6-1.8m)')
+  }
+
   setCrouching(isCrouching: boolean): void {
     const targetScale = isCrouching ? 0.7 : 1.0
     

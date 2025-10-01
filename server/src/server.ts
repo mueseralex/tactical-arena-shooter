@@ -389,14 +389,10 @@ function performHitDetection(shooterId: number, direction: any, shooterPosition:
       // Determine if headshot based on hit position (hitHeight is now relative to ground)
       const isHeadshot = hitResult.hitHeight >= 1.6 // Head is at or above 1.6m height
       
-      // Calculate damage with proper falloff
-      let damage = 35 // Base body damage
+      // Calculate damage - headshot = 1-shot kill, body = 3-shot kill
+      let damage = 34 // Body damage (34 x 3 = 102, just over 100 health)
       if (isHeadshot) {
         damage = 100 // One-shot headshot kill
-      } else {
-        // Distance-based damage falloff for body shots
-        const damageFalloff = Math.max(0.3, 1 - (hitResult.distance / maxRange))
-        damage = Math.floor(damage * damageFalloff)
       }
       
       closestHit = {
