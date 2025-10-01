@@ -21,7 +21,7 @@ export class PlayerModel extends THREE.Group {
     this.name = `player-model-${teamColor}`
     
     this.createPlayerModel()
-    this.createHitboxVisualization()
+    // Hitbox visualization removed - using accurate server-side detection
     this.add(this.playerGroup)
   }
 
