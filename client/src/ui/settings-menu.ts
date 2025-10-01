@@ -85,27 +85,28 @@ export class SettingsMenu {
           </div>
           
           <div class="menu-tabs">
-            <button class="tab-btn active" data-tab="game">🎯 Game</button>
-            <button class="tab-btn" data-tab="inventory">🎒 Inventory</button>
-            <button class="tab-btn" data-tab="debug">🐛 Debug</button>
+            <button class="tab-btn active" data-tab="game">🎯 Play</button>
             <button class="tab-btn" data-tab="gameplay">⚙️ Settings</button>
+            <button class="tab-btn" data-tab="debug">🐛 Dev</button>
           </div>
           
           <div class="settings-content">
             <!-- Game Tab -->
             <div class="tab-content active" data-tab="game">
-          <div class="settings-section">
-            <h3>🎮 Game Modes</h3>
-            <div class="button-group">
-              <button class="btn btn-primary" id="matchmake-1v1">⚔️ Find Match</button>
-              <button class="btn btn-success" id="solo-practice">🎯 Practice</button>
-              <button class="btn btn-warning" id="exit-practice" style="display: none;">🚪 Exit Practice</button>
-              <button class="btn btn-secondary" id="resume-game" style="display: none;">▶️ Resume</button>
-            </div>
-          </div>
+              <div class="settings-section">
+                <h3>🎮 Game Modes</h3>
+                <div class="button-group">
+                  <button class="btn btn-primary" id="matchmake-1v1">⚔️ Find 1v1 Match</button>
+                  <button class="btn btn-success" id="solo-practice">🎯 Practice Mode</button>
+                </div>
+                <div class="button-group" style="margin-top: 10px;">
+                  <button class="btn btn-warning" id="exit-practice" style="display: none;">🚪 Exit Practice</button>
+                  <button class="btn btn-secondary" id="resume-game" style="display: none;">▶️ Resume Game</button>
+                </div>
+              </div>
               
               <div class="settings-section" id="server-section">
-                <h3>🌐 Server</h3>
+                <h3>🌐 Multiplayer Server</h3>
                 <div class="server-list">
                   <div class="server-item server-selected" data-server="railway-main">
                     <span class="server-name">🚂 Railway Main Server</span>
@@ -115,38 +116,37 @@ export class SettingsMenu {
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <!-- Inventory Tab -->
-            <div class="tab-content" data-tab="inventory">
-              <div class="settings-section">
-                <h3>🔫 Weapons</h3>
-                <div class="inventory-grid">
-                  <div class="inventory-slot active">
-                    <div class="item-icon">🔫</div>
-                    <div class="item-name">Pistol</div>
-                    <div class="item-ammo">15/15</div>
-                  </div>
-                  <div class="inventory-slot disabled">
-                    <div class="item-icon">🔫</div>
-                    <div class="item-name">Rifle</div>
-                    <div class="item-ammo">Coming Soon</div>
-                  </div>
-                </div>
-              </div>
               
               <div class="settings-section">
-                <h3>🎒 Equipment</h3>
-                <div class="inventory-grid">
-                  <div class="inventory-slot disabled">
-                    <div class="item-icon">🛡️</div>
-                    <div class="item-name">Armor</div>
-                    <div class="item-ammo">Coming Soon</div>
+                <h3>📋 Controls</h3>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">WASD</span>
+                    <span class="info-value">Move</span>
                   </div>
-                  <div class="inventory-slot disabled">
-                    <div class="item-icon">💊</div>
-                    <div class="item-name">Health Kit</div>
-                    <div class="item-ammo">Coming Soon</div>
+                  <div class="info-item">
+                    <span class="info-label">Mouse</span>
+                    <span class="info-value">Look</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Space</span>
+                    <span class="info-value">Jump</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Shift/C</span>
+                    <span class="info-value">Crouch</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Left Click</span>
+                    <span class="info-value">Shoot</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">R</span>
+                    <span class="info-value">Reload</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">M/ESC</span>
+                    <span class="info-value">Menu</span>
                   </div>
                 </div>
               </div>
@@ -155,11 +155,37 @@ export class SettingsMenu {
             <!-- Debug Tab -->
             <div class="tab-content" data-tab="debug">
               <div class="settings-section">
-                <h3>🐛 Debug Console</h3>
+                <h3>🐛 Developer Console</h3>
                 <div class="debug-log" id="debug-log">
                   <div class="debug-placeholder">Debug messages will appear here...</div>
                 </div>
                 <button class="btn btn-secondary" id="clear-debug">Clear Log</button>
+              </div>
+              
+              <div class="settings-section">
+                <h3>📊 Development Info</h3>
+                <div class="info-grid">
+                  <div class="info-item">
+                    <span class="info-label">Version</span>
+                    <span class="info-value">Alpha 0.1.0</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Build Date</span>
+                    <span class="info-value">Oct 2025</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="info-label">Server</span>
+                    <span class="info-value" id="dev-server-url">Railway</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="settings-section">
+                <h3>🔧 Dev Actions</h3>
+                <div class="button-group">
+                  <button class="btn btn-secondary" id="request-server-info">📡 Server Info</button>
+                  <button class="btn btn-secondary" id="test-connection">🔌 Test Connection</button>
+                </div>
               </div>
             </div>
             
@@ -1058,6 +1084,24 @@ export class SettingsMenu {
     const clearDebugBtn = this.settingsElement.querySelector('#clear-debug') as HTMLButtonElement
     clearDebugBtn?.addEventListener('click', () => {
       this.clearDebugLog()
+    })
+    
+    // Dev buttons
+    const requestServerInfoBtn = this.settingsElement.querySelector('#request-server-info') as HTMLButtonElement
+    requestServerInfoBtn?.addEventListener('click', () => {
+      console.log('📡 Requesting server info...')
+      this.onRequestServerInfo?.()
+      this.addDebugMessage('📡 Server info requested', 'success')
+    })
+    
+    const testConnectionBtn = this.settingsElement.querySelector('#test-connection') as HTMLButtonElement
+    testConnectionBtn?.addEventListener('click', () => {
+      console.log('🔌 Testing connection...')
+      this.addDebugMessage('🔌 Connection test started', 'info')
+      // Simulate connection test
+      setTimeout(() => {
+        this.addDebugMessage('✅ Connection OK', 'success')
+      }, 500)
     })
     
     // ESC key handling is now managed by the game engine

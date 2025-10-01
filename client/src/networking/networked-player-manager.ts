@@ -35,13 +35,20 @@ export class NetworkedPlayerManager {
     
     // Create enemy player model (red)
     const playerModel = new PlayerModel('red')
-    playerModel.position.set(0, 0, 0) // Start at ground level - model has built-in height
+    // Set initial position at ground level - model builds upward from this point
+    playerModel.position.set(0, 0, 0)
     playerModel.name = `player-${playerId}` // Name for debugging
+    
+    // Make sure the model is visible and at correct scale
+    playerModel.visible = true
+    playerModel.scale.set(1, 1, 1)
+    
     this.scene.add(playerModel)
     
     console.log(`✅ Player ${playerId} model added to scene at ground level`)
     console.log(`📊 Scene now has ${this.scene.children.length} children`)
     console.log(`👁️ Player ${playerId} visible:`, playerModel.visible)
+    console.log(`📍 Player ${playerId} position:`, playerModel.position)
 
     // Create networked player data
     const networkedPlayer: NetworkedPlayer = {
