@@ -133,18 +133,16 @@ function handlePlayerMessage(playerId: number, message: any) {
       break
       
     case 'player_position':
-      // Update player position and broadcast to others (Python script approach)
+      // Update player position and broadcast to others
       if (message.position) {
-        // Store player position (like Python script's players dict)
         player.position = message.position
         player.rotation = message.rotation || { x: 0, y: 0, z: 0 }
         player.lastActivity = Date.now()
         
-        // Python script style - simple broadcast to match players
+        // Broadcast to all other players in match
         if (player.matchId) {
           const match = activeMatches.get(player.matchId)
           if (match) {
-            // Send to all other players in match (Python script approach)
             match.players.forEach((otherPlayerId: number) => {
               if (otherPlayerId !== playerId) {
                 const otherPlayer = connectedPlayers.get(otherPlayerId)

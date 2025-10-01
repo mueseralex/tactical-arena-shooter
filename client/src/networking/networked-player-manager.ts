@@ -83,34 +83,20 @@ export class NetworkedPlayerManager {
   }
 
   updatePlayerPosition(playerId: number, position: Vector3, rotation: Vector3): void {
-    console.log(`🚨 CRITICAL: updatePlayerPosition called for player ${playerId}`)
-    console.log(`🚨 CRITICAL: Position data:`, position)
-    console.log(`🚨 CRITICAL: Players map size:`, this.players.size)
-    console.log(`🚨 CRITICAL: Players in map:`, Array.from(this.players.keys()))
-    
     const player = this.players.get(playerId)
     if (!player) {
-      console.error(`❌ CRITICAL: Player ${playerId} not found for position update!`)
-      console.error(`❌ CRITICAL: Available players:`, Array.from(this.players.keys()))
+      console.warn(`⚠️ Player ${playerId} not found for position update`)
       return
     }
-
-    console.log(`🚨 CRITICAL: Player ${playerId} found, updating model position`)
-    console.log(`🚨 CRITICAL: Model before update:`, player.model.position)
     
-    // Python script style - direct position update, no interpolation
+    // Direct position update
     player.model.position.set(position.x, position.y, position.z)
-    player.model.rotation.y = rotation.y // Only Y rotation for player facing direction
-    
-    console.log(`🚨 CRITICAL: Model after update:`, player.model.position)
-    console.log(`🚨 CRITICAL: Model world position:`, player.model.getWorldPosition(new THREE.Vector3()))
+    player.model.rotation.y = rotation.y
     
     // Update stored data
     player.lastPosition = { ...position }
     player.lastRotation = { ...rotation }
     player.lastUpdate = Date.now()
-    
-    console.log(`✅ CRITICAL: Player ${playerId} position update COMPLETED`)
   }
 
   showPlayerShot(playerId: number): void {

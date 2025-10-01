@@ -304,11 +304,7 @@ export class GameEngine {
     })
     
     this.gameClient.onPlayerPositionUpdateCallback((playerId, position, rotation) => {
-      console.log(`📍 CRITICAL: Received position update for player ${playerId}:`, position, rotation)
-      console.log(`📍 CRITICAL: NetworkedPlayerManager exists:`, !!this.networkedPlayerManager)
-      console.log(`📍 CRITICAL: Calling updatePlayerPosition now...`)
       this.networkedPlayerManager.updatePlayerPosition(playerId, position, rotation)
-      console.log(`📍 CRITICAL: updatePlayerPosition call completed`)
     })
     
     this.gameClient.onPlayerShotCallback((playerId) => {
@@ -770,32 +766,22 @@ export class GameEngine {
     
     // Set up position update callback (Python script style - simple and direct)
     let lastPositionSent = 0
-    const positionSendRate = 100 // 10 times per second like Python script
+    const positionSendRate = 50 // 20 updates per second
     
     this.controls.setPositionCallback((position, rotation) => {
-      console.log(`🚨 POSITION CALLBACK TRIGGERED:`, position, rotation)
-      console.log(`🚨 Game client connected:`, this.gameClient.connected)
-      console.log(`🚨 Game state:`, this.gameState)
-      
       if (this.gameClient.connected && this.gameState === 'playing') {
         const now = Date.now()
-        console.log(`🚨 Time check: now=${now}, lastSent=${lastPositionSent}, rate=${positionSendRate}`)
         if (now - lastPositionSent >= positionSendRate) {
           lastPositionSent = now
-          console.log(`🚨 SENDING TO SERVER:`, { x: position.x, y: position.y, z: position.z })
           this.gameClient.sendPlayerPosition(
             { x: position.x, y: position.y, z: position.z },
             { x: rotation.x, y: rotation.y, z: rotation.z }
           )
-        } else {
-          console.log(`🚨 THROTTLED: Too soon to send`)
         }
-      } else {
-        console.warn(`⚠️ Not sending: connected=${this.gameClient.connected}, state=${this.gameState}`)
       }
     })
     
-    console.log('✅ CRITICAL: Controls connected to networking - callback should be set')
+    console.log('✅ Controls connected to networking')
   }
 
   handleResize(): void {
