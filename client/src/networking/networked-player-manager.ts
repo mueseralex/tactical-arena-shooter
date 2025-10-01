@@ -7,6 +7,8 @@ export interface NetworkedPlayer {
   model: PlayerModel
   lastPosition: Vector3
   lastRotation: Vector3
+  targetPosition: Vector3  // Target position for interpolation
+  targetRotation: Vector3  // Target rotation for interpolation
   lastUpdate: number
   isAlive: boolean
   updateCount?: number
@@ -33,11 +35,11 @@ export class NetworkedPlayerManager {
     
     // Create enemy player model (red)
     const playerModel = new PlayerModel('red')
-    playerModel.position.set(0, 1.8, 0) // Start at spawn height
+    playerModel.position.set(0, 0, 0) // Start at ground level - model has built-in height
     playerModel.name = `player-${playerId}` // Name for debugging
     this.scene.add(playerModel)
     
-    console.log(`✅ Player ${playerId} model added to scene at (0, 1.8, 0)`)
+    console.log(`✅ Player ${playerId} model added to scene at ground level`)
     console.log(`📊 Scene now has ${this.scene.children.length} children`)
     console.log(`👁️ Player ${playerId} visible:`, playerModel.visible)
 
@@ -45,8 +47,10 @@ export class NetworkedPlayerManager {
     const networkedPlayer: NetworkedPlayer = {
       id: playerId,
       model: playerModel,
-      lastPosition: { x: 0, y: 1.8, z: 0 },
+      lastPosition: { x: 0, y: 0, z: 0 },
       lastRotation: { x: 0, y: 0, z: 0 },
+      targetPosition: { x: 0, y: 0, z: 0 },
+      targetRotation: { x: 0, y: 0, z: 0 },
       lastUpdate: Date.now(),
       isAlive: true
     }
@@ -91,13 +95,11 @@ export class NetworkedPlayerManager {
         { x: position.x.toFixed(1), y: position.y.toFixed(1), z: position.z.toFixed(1) })
     }
     
-    // Direct position update
-    player.model.position.set(position.x, position.y, position.z)
-    player.model.rotation.y = rotation.y
+    // Set target position for smooth interpolation (ground level - model has built-in height)
+    player.targetPosition = { x: position.x, y: 0, z: position.z }
+    player.targetRotation = { ...rotation }
     
-    // Update stored data
-    player.lastPosition = { ...position }
-    player.lastRotation = { ...rotation }
+    // Update last known position
     player.lastUpdate = Date.now()
   }
 
@@ -151,10 +153,28 @@ export class NetworkedPlayerManager {
   // Update method called each frame for interpolation
   update(deltaTime: number): void {
     const currentTime = Date.now()
+    const lerpFactor = Math.min(deltaTime * 10, 1) // Smooth interpolation (10x speed for responsiveness)
     
     this.players.forEach((player) => {
-      // Add smooth interpolation here if needed
-      // For now, we're doing immediate updates in updatePlayerPosition
+      // Smooth interpolation towards target position
+      player.model.position.x = THREE.MathUtils.lerp(player.model.position.x, player.targetPosition.x, lerpFactor)
+      player.model.position.y = THREE.MathUtils.lerp(player.model.position.y, player.targetPosition.y, lerpFactor)
+      player.model.position.z = THREE.MathUtils.lerp(player.model.position.z, player.targetPosition.z, lerpFactor)
+      
+      // Smooth rotation interpolation
+      player.model.rotation.y = THREE.MathUtils.lerp(player.model.rotation.y, player.targetRotation.y, lerpFactor)
+      
+      // Store current position for next frame
+      player.lastPosition = {
+        x: player.model.position.x,
+        y: player.model.position.y,
+        z: player.model.position.z
+      }
+      player.lastRotation = {
+        x: player.model.rotation.x,
+        y: player.model.rotation.y,
+        z: player.model.rotation.z
+      }
       
       // Check if player hasn't been updated recently (connection issues)
       const timeSinceUpdate = currentTime - player.lastUpdate
