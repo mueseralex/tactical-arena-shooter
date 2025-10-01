@@ -14,7 +14,6 @@ export class GameEngine {
   private clock!: THREE.Clock
   private controls!: FirstPersonControls
   private arena!: Arena
-  private demoPlayerModel!: PlayerModel
   private settingsMenu!: SettingsMenu
   private gameClient!: GameClient
   private networkedPlayerManager!: NetworkedPlayerManager
@@ -167,10 +166,6 @@ export class GameEngine {
     console.log('✅ Tactical arena initialized')
   }
 
-  private initDemoPlayer(): void {
-    // Demo player model removed - no longer needed for competitive play
-    console.log('✅ Demo player model skipped - arena is now clean')
-  }
 
   private initControls(): void {
     console.log('🎮 Initializing game controls...')
@@ -474,10 +469,6 @@ export class GameEngine {
       this.networkedPlayerManager.update(deltaTime)
     }
     
-    // Update demo player model (only if it exists)
-    if (this.demoPlayerModel) {
-      this.demoPlayerModel.update(deltaTime)
-    }
     
     // Game logic updates will go here
     // Arena and cover objects are now static - no updates needed

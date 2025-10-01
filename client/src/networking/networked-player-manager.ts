@@ -27,30 +27,14 @@ export class NetworkedPlayerManager {
       return
     }
 
-    console.log(`👤 Adding networked player ${playerId} to scene`)
-    console.log(`👥 Current players in manager:`, Array.from(this.players.keys()))
-    console.log(`🎬 Scene children count before:`, this.scene.children.length)
+    console.log(`👤 Adding networked player ${playerId}`)
     
-    // Create player model
-    const playerModel = new PlayerModel('red') // Enemy player
-    playerModel.position.set(0, 1.8, 0) // Start at ground level, will be updated from server
-    playerModel.visible = true // Ensure visibility
-    playerModel.scale.set(2, 2, 2) // Make it bigger for testing visibility
+    // Create enemy player model (red)
+    const playerModel = new PlayerModel('red')
+    playerModel.position.set(0, 0, 0) // Will be updated from server
     this.scene.add(playerModel)
     
-    // Add a bright test cube to make sure we can see SOMETHING
-    const testGeometry = new THREE.BoxGeometry(1, 1, 1)
-    const testMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true })
-    const testCube = new THREE.Mesh(testGeometry, testMaterial)
-    testCube.position.set(0, 3, 0) // Above the player model
-    playerModel.add(testCube) // Attach to player model so it moves with it
-    console.log(`🔴 Added bright red test cube above player ${playerId}`)
-    
-    console.log(`🎬 Scene children count after:`, this.scene.children.length)
-    console.log(`✅ Networked player ${playerId} model added to scene at position (0, 1.8, 0)`)
-    console.log(`👁️ New player model visibility:`, playerModel.visible)
-    console.log(`📏 New player model scale:`, playerModel.scale)
-    console.log(`🎯 New player model world position:`, playerModel.getWorldPosition(new THREE.Vector3()))
+    console.log(`✅ Player ${playerId} model added to scene`)
 
     // Create networked player data
     const networkedPlayer: NetworkedPlayer = {
@@ -85,7 +69,7 @@ export class NetworkedPlayerManager {
   updatePlayerPosition(playerId: number, position: Vector3, rotation: Vector3): void {
     const player = this.players.get(playerId)
     if (!player) {
-      console.warn(`⚠️ Player ${playerId} not found for position update`)
+      console.warn(`⚠️ Player ${playerId} not found. Available players:`, Array.from(this.players.keys()))
       return
     }
     
@@ -97,6 +81,11 @@ export class NetworkedPlayerManager {
     player.lastPosition = { ...position }
     player.lastRotation = { ...rotation }
     player.lastUpdate = Date.now()
+    
+    // Debug log first few position updates
+    if (player.lastUpdate < Date.now() - 100) {
+      console.log(`📍 Updated player ${playerId} to:`, position)
+    }
   }
 
   showPlayerShot(playerId: number): void {

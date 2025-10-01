@@ -94,8 +94,6 @@ export class GameClient {
   }
 
   private handleServerMessage(message: ServerMessage): void {
-    console.log('📨 Server message:', message.type)
-    
     switch (message.type) {
       case 'welcome':
         this.playerId = message.playerId
@@ -103,9 +101,7 @@ export class GameClient {
         break
         
       case 'player_joined':
-        console.log('👤 Player joined match:', message.playerId, 'Position:', message.position, 'Health:', message.health)
-        console.log('👤 Player joined callback exists:', !!this.onPlayerJoined)
-        console.log('👤 NetworkedPlayerManager exists:', !!this.onPlayerJoined)
+        console.log('👤 Player joined:', message.playerId)
         this.onPlayerJoined?.(message.playerId)
         break
         
@@ -129,8 +125,7 @@ export class GameClient {
         break
         
       case 'round_start':
-        console.log(`🎯 Round ${message.round} started!`, message)
-        console.log('🎯 Round start callback exists:', !!this.onRoundStart)
+        console.log(`🎯 Round ${message.round} started!`)
         this.onRoundStart?.(message)
         break
         
