@@ -459,8 +459,8 @@ export class GameEngine {
   }
 
   private update(deltaTime: number): void {
-    // Update first-person controls (only if initialized)
-    if (this.controls) {
+    // Update first-person controls (only if initialized and playing)
+    if (this.controls && this.gameState === 'playing') {
       this.controls.update(deltaTime)
     }
     
@@ -1129,12 +1129,16 @@ export class GameEngine {
   private showMatchStartCountdown(onComplete: () => void): void {
     console.log('⏱️ Starting match countdown...')
     
+    // Disable movement during countdown
+    this.gameState = 'menu'
+    
     const overlay = document.getElementById('countdown-overlay')
     const textElement = document.getElementById('countdown-text')
     const numberElement = document.getElementById('countdown-number')
     
     if (!overlay || !textElement || !numberElement) {
       console.warn('⚠️ Countdown elements not found, starting game immediately')
+      this.gameState = 'playing'
       onComplete()
       return
     }
@@ -1164,6 +1168,8 @@ export class GameEngine {
         
         setTimeout(() => {
           overlay.style.display = 'none'
+          // Re-enable movement
+          this.gameState = 'playing'
           onComplete()
         }, 800)
       }
@@ -1173,6 +1179,8 @@ export class GameEngine {
   }
 
   private showRoundCountdown(roundNumber: number, onComplete: () => void): void {
+    // Disable movement during countdown
+    this.gameState = 'menu'
     console.log(`⏱️ Starting round ${roundNumber} countdown...`)
     
     const overlay = document.getElementById('countdown-overlay')
@@ -1181,6 +1189,7 @@ export class GameEngine {
     
     if (!overlay || !textElement || !numberElement) {
       console.warn('⚠️ Countdown elements not found, starting round immediately')
+      this.gameState = 'playing'
       onComplete()
       return
     }
@@ -1210,6 +1219,8 @@ export class GameEngine {
         
         setTimeout(() => {
           overlay.style.display = 'none'
+          // Re-enable movement
+          this.gameState = 'playing'
           onComplete()
         }, 800)
       }
