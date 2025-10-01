@@ -101,7 +101,8 @@ export class GameClient {
         break
         
       case 'player_joined':
-        console.log('👤 Player joined:', message.playerId)
+        console.log('👤 Player joined:', message.playerId, 'at position:', message.position)
+        console.log('🎮 My player ID:', this.playerId)
         this.onPlayerJoined?.(message.playerId)
         break
         
@@ -111,6 +112,10 @@ export class GameClient {
         break
         
       case 'player_position_update':
+        // Log occasional position updates
+        if (Math.random() < 0.05) { // 5% of the time
+          console.log(`📍 Position update for player ${message.playerId}:`, message.position)
+        }
         this.onPlayerPositionUpdate?.(message.playerId, message.position!, message.rotation!)
         break
         

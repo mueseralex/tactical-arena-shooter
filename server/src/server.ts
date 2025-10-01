@@ -276,6 +276,7 @@ function startRound(matchId: string) {
   if (!match) return
   
   console.log(`🎯 Starting round ${match.currentRound} for match ${matchId}`)
+  console.log(`👥 Players in match: ${match.players.join(', ')}`)
   
   // Reset players for new round
   match.players.forEach((playerId: number, index: number) => {
@@ -290,6 +291,8 @@ function startRound(matchId: string) {
     const spawnPoint = index === 0 ? SPAWN_POINTS.player1 : SPAWN_POINTS.player2
     player.position = { ...spawnPoint }
     
+    console.log(`📍 Set player ${playerId} spawn to:`, spawnPoint)
+    
     // Send round start message with spawn position
     player.ws.send(JSON.stringify({
       type: 'round_start',
@@ -300,9 +303,15 @@ function startRound(matchId: string) {
       timeLimit: match.roundTimeLimit,
       scores: match.scores
     }))
-    
-    // Send information about all other players in the match (with slight delay)
-    setTimeout(() => {
+  })
+  
+  // Send player_joined messages for all players in the match (no delay, send immediately)
+  setTimeout(() => {
+    match.players.forEach((playerId: number) => {
+      const player = connectedPlayers.get(playerId)
+      if (!player) return
+      
+      // Tell this player about all other players
       match.players.forEach((otherPlayerId: number) => {
         if (otherPlayerId !== playerId) {
           const otherPlayer = connectedPlayers.get(otherPlayerId)
@@ -313,20 +322,12 @@ function startRound(matchId: string) {
               position: otherPlayer.position,
               health: otherPlayer.health
             }))
-            console.log(`👥 Told player ${playerId} about player ${otherPlayerId}`)
+            console.log(`👥 Told player ${playerId} about player ${otherPlayerId} at position`, otherPlayer.position)
           }
         }
       })
-    }, 500) // 500ms delay to ensure client is ready
-    
-    // Send position update to other players
-    broadcast({
-      type: 'player_position_update',
-      playerId: playerId,
-      position: player.position,
-      rotation: { x: 0, y: 0, z: 0 }
-    }, playerId)
-  })
+    })
+  }, 1000) // 1 second delay to ensure clients are ready
   
   // Set round timer
   match.roundStartTime = Date.now()

@@ -28,25 +28,30 @@ export class NetworkedPlayerManager {
     }
 
     console.log(`👤 Adding networked player ${playerId}`)
+    console.log(`📊 Scene has ${this.scene.children.length} children before adding player`)
     
     // Create enemy player model (red)
     const playerModel = new PlayerModel('red')
-    playerModel.position.set(0, 0, 0) // Will be updated from server
+    playerModel.position.set(0, 1.8, 0) // Start at spawn height
+    playerModel.name = `player-${playerId}` // Name for debugging
     this.scene.add(playerModel)
     
-    console.log(`✅ Player ${playerId} model added to scene`)
+    console.log(`✅ Player ${playerId} model added to scene at (0, 1.8, 0)`)
+    console.log(`📊 Scene now has ${this.scene.children.length} children`)
+    console.log(`👁️ Player ${playerId} visible:`, playerModel.visible)
 
     // Create networked player data
     const networkedPlayer: NetworkedPlayer = {
       id: playerId,
       model: playerModel,
-      lastPosition: { x: 0, y: 0, z: 0 },
+      lastPosition: { x: 0, y: 1.8, z: 0 },
       lastRotation: { x: 0, y: 0, z: 0 },
       lastUpdate: Date.now(),
       isAlive: true
     }
 
     this.players.set(playerId, networkedPlayer)
+    console.log(`📝 Player ${playerId} stored in players map. Total players: ${this.players.size}`)
   }
 
   removePlayer(playerId: number): void {
@@ -73,6 +78,12 @@ export class NetworkedPlayerManager {
       return
     }
     
+    // Log first position update for this player
+    const isFirstUpdate = player.lastUpdate === 0 || Date.now() - player.lastUpdate > 5000
+    if (isFirstUpdate) {
+      console.log(`📍 First position update for player ${playerId}:`, position)
+    }
+    
     // Direct position update
     player.model.position.set(position.x, position.y, position.z)
     player.model.rotation.y = rotation.y
@@ -81,11 +92,6 @@ export class NetworkedPlayerManager {
     player.lastPosition = { ...position }
     player.lastRotation = { ...rotation }
     player.lastUpdate = Date.now()
-    
-    // Debug log first few position updates
-    if (player.lastUpdate < Date.now() - 100) {
-      console.log(`📍 Updated player ${playerId} to:`, position)
-    }
   }
 
   showPlayerShot(playerId: number): void {
