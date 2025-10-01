@@ -454,14 +454,21 @@ function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, ma
     const targetDirZ = dz / horizontalDistance
     const aimAccuracy = (normalizedDir.x * targetDirX) + (normalizedDir.z * targetDirZ)
     
-    // Require very good aim (0.99 = ~8 degree cone)
-    if (aimAccuracy >= 0.99) {
+    console.log(`🎯 Hit check - Distance: ${horizontalDistance.toFixed(2)}, RayY: ${rayYAtTarget.toFixed(2)}, TargetY: ${targetBottomY}-${targetTopY}, Accuracy: ${aimAccuracy.toFixed(3)}`)
+    
+    // Require decent aim (0.95 = ~18 degree cone)
+    if (aimAccuracy >= 0.95) {
+      console.log(`✅ HIT CONFIRMED! Height: ${relativeHitHeight.toFixed(2)}m`)
       return {
         hit: true,
         distance: horizontalDistance,
         hitHeight: relativeHitHeight
       }
+    } else {
+      console.log(`❌ Miss - aim accuracy too low: ${aimAccuracy.toFixed(3)}`)
     }
+  } else {
+    console.log(`❌ Miss - ray Y (${rayYAtTarget.toFixed(2)}) outside target range ${targetBottomY.toFixed(2)}-${targetTopY.toFixed(2)}`)
   }
   
   return { hit: false, distance: horizontalDistance, hitHeight: 0 }
