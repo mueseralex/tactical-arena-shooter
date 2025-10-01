@@ -464,9 +464,9 @@ function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, ma
   
   // Check if ray Y intersects with target's vertical hitbox
   // Target position is ground level, visual model is 1.8m tall
-  // Need generous hitbox to cover entire visible player
-  const targetBottom = targetPos.y - 0.2 // Start slightly below ground for feet
-  const targetTop = targetPos.y + PLAYER_HEIGHT + 0.7 // Extend well above for head
+  // CRITICAL: Make hitbox much taller to cover entire visible model
+  const targetBottom = targetPos.y - 0.5 // Start below ground
+  const targetTop = targetPos.y + (PLAYER_HEIGHT * 2) // Double the height to 3.6m total
   
   console.log(`🎯 Checking hit: RayY=${rayAtTargetY.toFixed(2)}, Target range: ${targetBottom.toFixed(2)} to ${targetTop.toFixed(2)}`)
   
