@@ -610,7 +610,10 @@ export class FirstPersonControls {
   // Send position update (simple and direct)
   private sendPositionUpdate(): void {
     if (this.onPositionUpdate) {
-      this.onPositionUpdate(this.camera.position, this.camera.rotation)
+      // Send ground-level position (camera y - standing height)
+      const groundPosition = this.camera.position.clone()
+      groundPosition.y -= this.currentHeight
+      this.onPositionUpdate(groundPosition, this.camera.rotation)
     }
   }
 

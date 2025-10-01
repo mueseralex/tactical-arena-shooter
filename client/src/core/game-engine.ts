@@ -857,9 +857,10 @@ export class GameEngine {
     // Teleport player to spawn position
     if (roundData.spawnPosition && this.camera) {
       console.log(`📍 Setting spawn position: ${JSON.stringify(roundData.spawnPosition)}`)
+      // Server sends ground-level position (y=0), but camera needs to be at standing height (1.8)
       this.camera.position.set(
         roundData.spawnPosition.x,
-        roundData.spawnPosition.y,
+        roundData.spawnPosition.y + 1.8, // Add standing height
         roundData.spawnPosition.z
       )
       console.log(`📍 Camera position set to: ${this.camera.position.x}, ${this.camera.position.y}, ${this.camera.position.z}`)

@@ -95,8 +95,9 @@ export class NetworkedPlayerManager {
         { x: position.x.toFixed(1), y: position.y.toFixed(1), z: position.z.toFixed(1) })
     }
     
-    // Set target position for smooth interpolation (ground level - model has built-in height)
-    player.targetPosition = { x: position.x, y: 0, z: position.z }
+    // Set target position for smooth interpolation
+    // Server sends ground-level position, so we use it directly
+    player.targetPosition = { x: position.x, y: position.y, z: position.z }
     player.targetRotation = { ...rotation }
     
     // Update last known position

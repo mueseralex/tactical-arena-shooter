@@ -40,10 +40,10 @@ setInterval(() => {
 // Position synchronization interval (like Python script's broadcast loop)
 // Removed periodic sync - using Python script style message-based sync only
 
-// Spawn points for 1v1 (behind cover boxes - opposite sides of arena)
+// Spawn points for 1v1 (behind side lane cover - horizontal layout)
 const SPAWN_POINTS = {
-  player1: { x: -15, y: 1.8, z: 0 }, // Left side spawn (behind left cover)
-  player2: { x: 15, y: 1.8, z: 0 }   // Right side spawn (behind right cover)
+  player1: { x: -15, y: 0, z: 0 }, // Left side spawn (behind left lane cover at x=-12)
+  player2: { x: 15, y: 0, z: 0 }   // Right side spawn (behind right lane cover at x=12)
 }
 
 wss.on('connection', (ws, request) => {
@@ -51,7 +51,7 @@ wss.on('connection', (ws, request) => {
   const playerInfo = {
     id: playerId,
     ws,
-    position: { x: 0, y: 1.8, z: 0 },
+    position: { x: 0, y: 0, z: 0 },
     health: 100,
     maxHealth: 100,
     isAlive: true,

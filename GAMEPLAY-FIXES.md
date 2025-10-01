@@ -3,14 +3,21 @@
 ## Issues Fixed
 
 ### 1. Player Hitbox Floating ✅
-**Problem**: Player models were floating in the air instead of being on the ground.
+**Problem**: Player models were floating in the air instead of being on the ground. Hitboxes didn't match visual position.
 
 **Root Cause**: 
-- Server was spawning players at y=1.8 (player height)
-- Client was setting networked player models to y=0 (ground level)
-- The mismatch caused visual floating
+- Server was sending camera height (y=1.8) instead of ground-level position (y=0)
+- Client was hardcoding networked player models to y=0 regardless of server data
+- Local player was sending camera height, but networked players were rendering at ground level
+- This caused a mismatch between hitboxes and visual models
 
-**Solution**: The player models correctly handle height internally via `PlayerModel` class, so networked players start at y=0 (ground level) and the models render properly.
+**Solution**: 
+1. **Server**: Changed all positions to ground-level (y=0). Spawn points and player positions are now ground-based.
+2. **Client Camera**: When receiving spawn position, add standing height (+1.8) to place camera correctly.
+3. **Position Broadcasting**: Modified `sendPositionUpdate()` to send ground position (camera.y - currentHeight) instead of camera height.
+4. **Networked Players**: Use server's y position directly instead of hardcoding to 0.
+
+Now all positions are ground-level throughout the system, and the camera/model heights are added locally as needed.
 
 ---
 
@@ -65,30 +72,31 @@ if (this.controls && this.gameState === 'playing') {
 ---
 
 ### 4. Spawn Positions ✅
-**Problem**: Players were spawning vertically (along z-axis) instead of horizontally (along x-axis) behind cover boxes.
+**Problem**: Players were spawning vertically (along z-axis at positions z=8 and z=-8) instead of horizontally (along x-axis) behind side lane cover boxes.
 
-**Root Cause**: Spawn points were configured for vertical spawning:
+**Root Cause**: Spawn points were configured for vertical spawning along the Z-axis instead of the X-axis where the side lane cover is located.
+
+**Solution**: Changed spawn positions to horizontal (opposite sides of arena) behind the side lane cover:
 ```typescript
-// Old spawn points (vertical)
+// Old spawn points (vertical along Z-axis)
 player1: { x: -12, y: 1.8, z: 8 }
 player2: { x: 12, y: 1.8, z: 8 }
+
+// New spawn points (horizontal along X-axis behind side lanes)
+player1: { x: -15, y: 0, z: 0 } // Left side (behind cover at x=-12)
+player2: { x: 15, y: 0, z: 0 }  // Right side (behind cover at x=12)
 ```
 
-**Solution**: Changed spawn positions to horizontal (opposite sides of arena) behind cover:
-```typescript
-// New spawn points (horizontal - behind cover)
-player1: { x: -15, y: 1.8, z: 0 } // Left side
-player2: { x: 15, y: 1.8, z: 0 }  // Right side
-```
-
-Now players spawn behind the left/right side cover boxes, giving them protection at round start.
+Now players spawn behind the left/right side lane cover boxes at x=-12 and x=12, giving them protection at round start and creating a horizontal layout.
 
 ---
 
 ## Files Modified
 
 1. **server/src/server.ts**
-   - Updated `SPAWN_POINTS` for horizontal spawning
+   - Updated `SPAWN_POINTS` for horizontal spawning behind side lane cover (x=-15, x=15, z=0)
+   - Changed all position y-coordinates from 1.8 to 0 (ground-level)
+   - Updated default player position to (0, 0, 0)
 
 2. **client/index.html**
    - Fixed countdown overlay HTML structure
@@ -97,6 +105,15 @@ Now players spawn behind the left/right side cover boxes, giving them protection
 3. **client/src/core/game-engine.ts**
    - Added `gameState` management in countdown functions
    - Modified `update()` to respect game state for controls
+   - Updated spawn position handling to add standing height (+1.8) to ground-level server positions
+
+4. **client/src/systems/first-person-controls.ts**
+   - Modified `sendPositionUpdate()` to send ground-level position (camera.y - currentHeight)
+   - This ensures consistent ground-based positioning across all clients
+
+5. **client/src/networking/networked-player-manager.ts**
+   - Updated `updatePlayerPosition()` to use server's y position directly
+   - Removed hardcoded y=0 override, now respects server position data
 
 ---
 
