@@ -410,26 +410,21 @@ function performHitDetection(shooterId: number, direction: any, shooterPosition:
 
 function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, maxRange: number) {
   // Target position is ground-level, but player body extends from 0 to 1.8m
+  // Shooter position is camera height (ground + 1.8m)
   const PLAYER_HEIGHT = 1.8
   const HEAD_HEIGHT = 1.6 // Height where headshots start
   
-  // Calculate vector from shooter to target's center mass
-  const targetCenterY = targetPos.y + (PLAYER_HEIGHT / 2) // Center of player body
+  // Calculate horizontal distance first (ignore Y)
+  const dx = targetPos.x - shooterPos.x
+  const dz = targetPos.z - shooterPos.z
+  const horizontalDistance = Math.sqrt(dx * dx + dz * dz)
   
-  const toTarget = {
-    x: targetPos.x - shooterPos.x,
-    y: targetCenterY - shooterPos.y,
-    z: targetPos.z - shooterPos.z
+  // Check if target is within horizontal range
+  if (horizontalDistance > maxRange) {
+    return { hit: false, distance: horizontalDistance, hitHeight: 0 }
   }
   
-  const targetDistance = Math.sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y + toTarget.z * toTarget.z)
-  
-  // Check if target is within range
-  if (targetDistance > maxRange) {
-    return { hit: false, distance: targetDistance, hitHeight: 0 }
-  }
-  
-  // Normalize direction and toTarget vectors
+  // Normalize direction vector
   const dirLength = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z)
   const normalizedDir = {
     x: direction.x / dirLength,
@@ -437,35 +432,39 @@ function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, ma
     z: direction.z / dirLength
   }
   
-  const normalizedToTarget = {
-    x: toTarget.x / targetDistance,
-    y: toTarget.y / targetDistance,
-    z: toTarget.z / targetDistance
-  }
+  // Calculate where the ray would be at the target's horizontal position
+  // Ray equation: point = origin + direction * t
+  // We need to find t where ray's XZ matches target's XZ
+  const t = horizontalDistance
   
-  // Calculate dot product to check if shot is aimed at target
-  const dotProduct = normalizedDir.x * normalizedToTarget.x + 
-                    normalizedDir.y * normalizedToTarget.y + 
-                    normalizedDir.z * normalizedToTarget.z
+  // Calculate the Y position of the ray at the target's location
+  const rayYAtTarget = shooterPos.y + (normalizedDir.y * t)
   
-  // Require high accuracy for hits (0.98 = very precise aim)
-  const accuracyThreshold = 0.98
+  // Target's body spans from targetPos.y (0) to targetPos.y + PLAYER_HEIGHT (1.8)
+  const targetBottomY = targetPos.y
+  const targetTopY = targetPos.y + PLAYER_HEIGHT
   
-  if (dotProduct >= accuracyThreshold) {
-    // Calculate where the ray hits relative to target's ground position
-    const relativeHitHeight = shooterPos.y + (normalizedDir.y * targetDistance) - targetPos.y
+  // Check if ray passes through target's vertical space
+  if (rayYAtTarget >= targetBottomY && rayYAtTarget <= targetTopY) {
+    // Calculate hit height relative to target's feet (ground)
+    const relativeHitHeight = rayYAtTarget - targetBottomY
     
-    // Check if hit is within player's height (0 to PLAYER_HEIGHT)
-    if (relativeHitHeight >= 0 && relativeHitHeight <= PLAYER_HEIGHT) {
+    // Check horizontal aim accuracy
+    const targetDirX = dx / horizontalDistance
+    const targetDirZ = dz / horizontalDistance
+    const aimAccuracy = (normalizedDir.x * targetDirX) + (normalizedDir.z * targetDirZ)
+    
+    // Require very good aim (0.99 = ~8 degree cone)
+    if (aimAccuracy >= 0.99) {
       return {
         hit: true,
-        distance: targetDistance,
+        distance: horizontalDistance,
         hitHeight: relativeHitHeight
       }
     }
   }
   
-  return { hit: false, distance: targetDistance, hitHeight: 0 }
+  return { hit: false, distance: horizontalDistance, hitHeight: 0 }
 }
 
 function calculateDistance(pos1: any, pos2: any): number {
