@@ -138,9 +138,17 @@ export class PlayerModel extends THREE.Group {
 
   // Crouching animation
   private createHitboxVisualization(): void {
-    // Body hitbox - green wireframe box from ground to shoulders
-    const bodyHeight = 1.6 // Body from 0 to 1.6m
-    const bodyGeometry = new THREE.BoxGeometry(0.6, bodyHeight, 0.6)
+    // Calculate where the actual player model geometry is positioned
+    const headSphereRadius = this.HEAD_RADIUS * 1.5
+    const bodyHeight = this.PLAYER_HEIGHT - (headSphereRadius * 2) - 0.1
+    
+    // Body starts at ground + CAPSULE_RADIUS (not at ground level!)
+    const bodyBottom = this.CAPSULE_RADIUS
+    const bodyTop = bodyBottom + bodyHeight
+    
+    // Body hitbox - green wireframe box matching actual body geometry
+    const bodyHitboxHeight = bodyTop - bodyBottom
+    const bodyGeometry = new THREE.BoxGeometry(0.6, bodyHitboxHeight, 0.6)
     const bodyMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ff00,
       wireframe: true,
@@ -148,12 +156,13 @@ export class PlayerModel extends THREE.Group {
       opacity: 0.5
     })
     this.bodyHitbox = new THREE.Mesh(bodyGeometry, bodyMaterial)
-    this.bodyHitbox.position.set(0, bodyHeight / 2, 0) // Center at middle of body height
+    this.bodyHitbox.position.set(0, bodyBottom + (bodyHitboxHeight / 2), 0)
     this.add(this.bodyHitbox)
     
-    // Head hitbox - red wireframe box from shoulders to top
-    const headHeight = 0.2 // Head from 1.6m to 1.8m
-    const headGeometry = new THREE.BoxGeometry(0.4, headHeight, 0.4)
+    // Head hitbox - red wireframe box from body top to model top
+    const headTop = this.PLAYER_HEIGHT
+    const headHitboxHeight = headTop - bodyTop
+    const headGeometry = new THREE.BoxGeometry(0.5, headHitboxHeight, 0.5)
     const headMaterial = new THREE.MeshBasicMaterial({
       color: 0xff0000,
       wireframe: true,
@@ -161,10 +170,12 @@ export class PlayerModel extends THREE.Group {
       opacity: 0.7
     })
     this.headHitbox = new THREE.Mesh(headGeometry, headMaterial)
-    this.headHitbox.position.set(0, 1.6 + (headHeight / 2), 0) // Position at head height
+    this.headHitbox.position.set(0, bodyTop + (headHitboxHeight / 2), 0)
     this.add(this.headHitbox)
     
-    console.log('🎯 Hitbox visualization created - Body: green (0-1.6m), Head: red (1.6-1.8m)')
+    console.log(`🎯 Hitbox visualization created:`)
+    console.log(`   Body (green): ${bodyBottom.toFixed(2)}m to ${bodyTop.toFixed(2)}m`)
+    console.log(`   Head (red): ${bodyTop.toFixed(2)}m to ${headTop.toFixed(2)}m`)
   }
 
   setCrouching(isCrouching: boolean): void {

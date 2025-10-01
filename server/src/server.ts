@@ -386,8 +386,10 @@ function performHitDetection(shooterId: number, direction: any, shooterPosition:
     if (hitResult.hit && hitResult.distance < closestDistance) {
       closestDistance = hitResult.distance
       
-      // Determine if headshot based on hit position (hitHeight is now relative to ground)
-      const isHeadshot = hitResult.hitHeight >= 1.6 // Head is at or above 1.6m height
+      // Determine if headshot based on hit position
+      // Head starts where body ends (BODY_TOP relative to ground)
+      const BODY_TOP_HEIGHT = 0.25 + 1.35 // CAPSULE_RADIUS + BODY_HEIGHT = ~1.6m
+      const isHeadshot = hitResult.hitHeight >= BODY_TOP_HEIGHT
       
       // Calculate damage - headshot = 1-shot kill, body = 3-shot kill
       let damage = 34 // Body damage (34 x 3 = 102, just over 100 health)
@@ -409,10 +411,18 @@ function performHitDetection(shooterId: number, direction: any, shooterPosition:
 }
 
 function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, maxRange: number) {
-  // Target position is ground-level, but player body extends from 0 to 1.8m
+  // Target position is ground-level, but player VISUAL model starts above ground
+  // due to capsule geometry positioning
   // Shooter position is camera height (ground + 1.8m)
   const PLAYER_HEIGHT = 1.8
-  const HEAD_HEIGHT = 1.6 // Height where headshots start
+  const CAPSULE_RADIUS = 0.25
+  const HEAD_SPHERE_RADIUS = 0.15 * 1.5 // 0.225
+  const BODY_HEIGHT = PLAYER_HEIGHT - (HEAD_SPHERE_RADIUS * 2) - 0.1 // ~1.35
+  
+  // Body starts at ground + capsule radius, not at ground level!
+  const BODY_BOTTOM = CAPSULE_RADIUS  // ~0.25m above ground
+  const BODY_TOP = BODY_BOTTOM + BODY_HEIGHT  // ~1.6m
+  const HEAD_TOP = PLAYER_HEIGHT  // 1.8m
   
   // Calculate horizontal distance first (ignore Y)
   const dx = targetPos.x - shooterPos.x
@@ -440,9 +450,9 @@ function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, ma
   // Calculate the Y position of the ray at the target's location
   const rayYAtTarget = shooterPos.y + (normalizedDir.y * t)
   
-  // Target's body spans from targetPos.y (0) to targetPos.y + PLAYER_HEIGHT (1.8)
-  const targetBottomY = targetPos.y
-  const targetTopY = targetPos.y + PLAYER_HEIGHT
+  // Target's VISUAL body spans from targetPos.y + BODY_BOTTOM to targetPos.y + HEAD_TOP
+  const targetBottomY = targetPos.y + BODY_BOTTOM  // Start at capsule bottom
+  const targetTopY = targetPos.y + HEAD_TOP  // End at head top
   
   // Check if ray passes through target's vertical space
   if (rayYAtTarget >= targetBottomY && rayYAtTarget <= targetTopY) {
