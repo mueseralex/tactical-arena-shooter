@@ -42,8 +42,8 @@ setInterval(() => {
 
 // Spawn points for 1v1 (behind brown forward cover boxes - across from each other)
 const SPAWN_POINTS = {
-  player1: { x: 4, y: 0, z: 10 },  // Behind RIGHT brown box (at x=4, z=8) - moved from inside box
-  player2: { x: -4, y: 0, z: -10 } // Behind LEFT brown box (at x=-4, z=-8) - moved from inside box
+  player1: { x: 4, y: 0, z: 11 },  // Behind RIGHT brown box - further back to avoid being stuck
+  player2: { x: -4, y: 0, z: -11 } // Behind LEFT brown box - further back to avoid being stuck
 }
 
 wss.on('connection', (ws, request) => {

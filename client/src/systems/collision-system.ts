@@ -4,7 +4,7 @@ export class CollisionSystem {
   private collisionObjects: THREE.Mesh[] = []
   
   // Collision detection parameters
-  private readonly COLLISION_DISTANCE = 0.2 // Distance to maintain from objects
+  private readonly COLLISION_DISTANCE = 0.15 // Distance to maintain from objects
   
   // Bullet hole system
   private bulletHoles: THREE.Mesh[] = []
