@@ -409,28 +409,12 @@ function performHitDetection(shooterId: number, direction: any, shooterPosition:
 }
 
 function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, maxRange: number) {
-  // EXACT player model measurements from PlayerModel class:
-  // - PLAYER_HEIGHT = 1.8
-  // - CAPSULE_RADIUS = 0.25
-  // - HEAD_SPHERE_RADIUS = 0.15 * 1.5 = 0.225
-  // - bodyHeight = 1.8 - (0.225 * 2) - 0.1 = 1.35
-  // - Body center: bodyHeight/2 + CAPSULE_RADIUS = 0.675 + 0.25 = 0.925m
-  // - Body spans: 0.25m (bottom) to 1.6m (top)
-  // - Head center: 1.35 + 0.25 + 0.225 = 1.825m (but capped at 1.8)
+  // KEY: shooterPos is at CAMERA HEIGHT (ground + 1.8m)
+  //      targetPos is at GROUND LEVEL (0m)
+  //      Target's hitbox extends from ground (0m) to top (1.8m)
   
   const PLAYER_HEIGHT = 1.8
-  const BODY_RADIUS = 0.5  // Wider hitbox for better hit detection
-  
-  // Calculate 3D distance to target
-  const dx = targetPos.x - shooterPos.x
-  const dy = targetPos.y - shooterPos.y
-  const dz = targetPos.z - shooterPos.z
-  const distance3D = Math.sqrt(dx * dx + dy * dy + dz * dz)
-  
-  // Check if target is within range
-  if (distance3D > maxRange) {
-    return { hit: false, distance: distance3D, hitHeight: 0 }
-  }
+  const HITBOX_RADIUS = 0.4  // Horizontal hitbox radius
   
   // Normalize direction vector
   const dirLength = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z)
@@ -440,58 +424,62 @@ function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, ma
     z: direction.z / dirLength
   }
   
-  // Normalize vector to target
-  const toTarget = {
-    x: dx / distance3D,
-    y: dy / distance3D,
-    z: dz / distance3D
+  // Calculate distance to target (XZ plane only)
+  const dx = targetPos.x - shooterPos.x
+  const dz = targetPos.z - shooterPos.z
+  const horizontalDistance = Math.sqrt(dx * dx + dz * dz)
+  
+  if (horizontalDistance > maxRange || horizontalDistance < 0.1) {
+    return { hit: false, distance: horizontalDistance, hitHeight: 0 }
   }
   
-  // Calculate dot product (how aligned the shot is with target direction)
-  const dotProduct = normalizedDir.x * toTarget.x + 
-                     normalizedDir.y * toTarget.y + 
-                     normalizedDir.z * toTarget.z
+  // Project ray forward to target's XZ position
+  // Find how far along the ray (parameter t) we need to go to reach target's horizontal position
+  const rayDirXZ = Math.sqrt(normalizedDir.x * normalizedDir.x + normalizedDir.z * normalizedDir.z)
   
-  // Require good aim (0.98 threshold)
-  if (dotProduct < 0.98) {
-    return { hit: false, distance: distance3D, hitHeight: 0 }
+  if (rayDirXZ < 0.01) {
+    // Ray is shooting straight up/down
+    return { hit: false, distance: horizontalDistance, hitHeight: 0 }
   }
   
-  // Calculate closest point on ray to target center
-  // Ray: P = shooterPos + t * direction
-  // Find t where ray is closest to target
-  const t = dx * normalizedDir.x + dy * normalizedDir.y + dz * normalizedDir.z
+  // Calculate t: how far along ray to reach target's horizontal distance
+  const t = horizontalDistance / rayDirXZ
   
-  // Calculate point on ray at distance t
-  const rayPoint = {
-    x: shooterPos.x + normalizedDir.x * t,
-    y: shooterPos.y + normalizedDir.y * t,
-    z: shooterPos.z + normalizedDir.z * t
+  // Calculate where the ray is at the target's horizontal distance
+  const rayAtTargetX = shooterPos.x + normalizedDir.x * t
+  const rayAtTargetZ = shooterPos.z + normalizedDir.z * t
+  const rayAtTargetY = shooterPos.y + normalizedDir.y * t
+  
+  // Check if ray passes close enough horizontally to target center
+  const distToTargetX = rayAtTargetX - targetPos.x
+  const distToTargetZ = rayAtTargetZ - targetPos.z
+  const horizontalMiss = Math.sqrt(distToTargetX * distToTargetX + distToTargetZ * distToTargetZ)
+  
+  console.log(`📊 Hit calc: ShooterY=${shooterPos.y.toFixed(2)}, TargetY=${targetPos.y.toFixed(2)}, RayY=${rayAtTargetY.toFixed(2)}, HorizMiss=${horizontalMiss.toFixed(3)}`)
+  
+  if (horizontalMiss > HITBOX_RADIUS) {
+    console.log(`❌ Miss - horizontal: ${horizontalMiss.toFixed(3)} > ${HITBOX_RADIUS}`)
+    return { hit: false, distance: horizontalDistance, hitHeight: 0 }
   }
   
-  // Check if ray point is within player's cylindrical hitbox
-  const distX = rayPoint.x - targetPos.x
-  const distZ = rayPoint.z - targetPos.z
-  const horizontalDist = Math.sqrt(distX * distX + distZ * distZ)
+  // Check if ray Y intersects with target's vertical hitbox
+  // Target spans from targetPos.y (ground=0) to targetPos.y + PLAYER_HEIGHT (1.8)
+  const targetBottom = targetPos.y
+  const targetTop = targetPos.y + PLAYER_HEIGHT
   
-  // Check horizontal distance to cylinder axis
-  if (horizontalDist > BODY_RADIUS) {
-    return { hit: false, distance: distance3D, hitHeight: 0 }
-  }
-  
-  // Check vertical bounds (0 to PLAYER_HEIGHT)
-  const rayHeightAboveGround = rayPoint.y - targetPos.y
-  
-  if (rayHeightAboveGround >= 0 && rayHeightAboveGround <= PLAYER_HEIGHT) {
-    console.log(`✅ HIT! Distance: ${distance3D.toFixed(2)}, Height: ${rayHeightAboveGround.toFixed(2)}m, HorizDist: ${horizontalDist.toFixed(2)}`)
+  if (rayAtTargetY >= targetBottom && rayAtTargetY <= targetTop) {
+    const hitHeight = rayAtTargetY - targetBottom
+    console.log(`✅ HIT CONFIRMED! Height: ${hitHeight.toFixed(2)}m (${targetBottom.toFixed(2)} to ${targetTop.toFixed(2)}), HorizMiss: ${horizontalMiss.toFixed(3)}m`)
     return {
       hit: true,
-      distance: distance3D,
-      hitHeight: rayHeightAboveGround
+      distance: horizontalDistance,
+      hitHeight: hitHeight
     }
+  } else {
+    console.log(`❌ Miss - vertical: RayY=${rayAtTargetY.toFixed(2)} outside ${targetBottom.toFixed(2)}-${targetTop.toFixed(2)}`)
   }
   
-  return { hit: false, distance: distance3D, hitHeight: 0 }
+  return { hit: false, distance: horizontalDistance, hitHeight: 0 }
 }
 
 function calculateDistance(pos1: any, pos2: any): number {
