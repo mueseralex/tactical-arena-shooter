@@ -386,8 +386,8 @@ function performHitDetection(shooterId: number, direction: any, shooterPosition:
     if (hitResult.hit && hitResult.distance < closestDistance) {
       closestDistance = hitResult.distance
       
-      // Determine if headshot based on hit position
-      const isHeadshot = hitResult.hitHeight > 1.6 // Head is above 1.6m height
+      // Determine if headshot based on hit position (hitHeight is now relative to ground)
+      const isHeadshot = hitResult.hitHeight >= 1.6 // Head is at or above 1.6m height
       
       // Calculate damage with proper falloff
       let damage = 35 // Base body damage
@@ -413,10 +413,16 @@ function performHitDetection(shooterId: number, direction: any, shooterPosition:
 }
 
 function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, maxRange: number) {
-  // Calculate vector from shooter to target
+  // Target position is ground-level, but player body extends from 0 to 1.8m
+  const PLAYER_HEIGHT = 1.8
+  const HEAD_HEIGHT = 1.6 // Height where headshots start
+  
+  // Calculate vector from shooter to target's center mass
+  const targetCenterY = targetPos.y + (PLAYER_HEIGHT / 2) // Center of player body
+  
   const toTarget = {
     x: targetPos.x - shooterPos.x,
-    y: targetPos.y - shooterPos.y,
+    y: targetCenterY - shooterPos.y,
     z: targetPos.z - shooterPos.z
   }
   
@@ -446,17 +452,20 @@ function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, ma
                     normalizedDir.y * normalizedToTarget.y + 
                     normalizedDir.z * normalizedToTarget.z
   
-  // Require high accuracy for hits (0.95 = very precise aim)
-  const accuracyThreshold = 0.95
+  // Require high accuracy for hits (0.98 = very precise aim)
+  const accuracyThreshold = 0.98
   
   if (dotProduct >= accuracyThreshold) {
-    // Calculate hit height for headshot detection
-    const hitHeight = shooterPos.y + (normalizedDir.y * targetDistance)
+    // Calculate where the ray hits relative to target's ground position
+    const relativeHitHeight = shooterPos.y + (normalizedDir.y * targetDistance) - targetPos.y
     
-    return {
-      hit: true,
-      distance: targetDistance,
-      hitHeight: hitHeight
+    // Check if hit is within player's height (0 to PLAYER_HEIGHT)
+    if (relativeHitHeight >= 0 && relativeHitHeight <= PLAYER_HEIGHT) {
+      return {
+        hit: true,
+        distance: targetDistance,
+        hitHeight: relativeHitHeight
+      }
     }
   }
   
