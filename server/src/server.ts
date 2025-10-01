@@ -455,31 +455,24 @@ function calculateRaycastHit(shooterPos: any, direction: any, targetPos: any, ma
   const distToTargetZ = rayAtTargetZ - targetPos.z
   const horizontalMiss = Math.sqrt(distToTargetX * distToTargetX + distToTargetZ * distToTargetZ)
   
-  console.log(`📊 Hit calc: ShooterY=${shooterPos.y.toFixed(2)}, TargetY=${targetPos.y.toFixed(2)}, RayY=${rayAtTargetY.toFixed(2)}, HorizMiss=${horizontalMiss.toFixed(3)}`)
-  
   if (horizontalMiss > HITBOX_RADIUS) {
-    console.log(`❌ Miss - horizontal: ${horizontalMiss.toFixed(3)} > ${HITBOX_RADIUS}`)
     return { hit: false, distance: horizontalDistance, hitHeight: 0 }
   }
   
   // Check if ray Y intersects with target's vertical hitbox
-  // Target position is ground level, visual model is 1.8m tall
-  // CRITICAL: Make hitbox much taller to cover entire visible model
-  const targetBottom = targetPos.y - 0.5 // Start below ground
-  const targetTop = targetPos.y + (PLAYER_HEIGHT * 2) // Double the height to 3.6m total
-  
-  console.log(`🎯 Checking hit: RayY=${rayAtTargetY.toFixed(2)}, Target range: ${targetBottom.toFixed(2)} to ${targetTop.toFixed(2)}`)
+  // KEY FIX: Target is at ground (0), but shooter is at camera height (1.8)
+  // When aiming straight ahead, ray should be at middle of player (0.9m)
+  // Player model extends from 0 to 1.8m, so hitbox should be 0 to 1.8m
+  const targetBottom = targetPos.y
+  const targetTop = targetPos.y + PLAYER_HEIGHT
   
   if (rayAtTargetY >= targetBottom && rayAtTargetY <= targetTop) {
     const hitHeight = rayAtTargetY - targetBottom
-    console.log(`✅ HIT CONFIRMED! Height: ${hitHeight.toFixed(2)}m, HorizMiss: ${horizontalMiss.toFixed(3)}m`)
     return {
       hit: true,
       distance: horizontalDistance,
       hitHeight: hitHeight
     }
-  } else {
-    console.log(`❌ Miss - RayY outside target bounds`)
   }
   
   return { hit: false, distance: horizontalDistance, hitHeight: 0 }

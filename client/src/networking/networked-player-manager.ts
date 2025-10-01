@@ -45,10 +45,7 @@ export class NetworkedPlayerManager {
     
     this.scene.add(playerModel)
     
-    console.log(`✅ Player ${playerId} model added to scene at ground level`)
-    console.log(`📊 Scene now has ${this.scene.children.length} children`)
-    console.log(`👁️ Player ${playerId} visible:`, playerModel.visible)
-    console.log(`📍 Player ${playerId} position:`, playerModel.position)
+    console.log(`✅ Player ${playerId} model added to scene`)
 
     // Create networked player data
     const networkedPlayer: NetworkedPlayer = {
@@ -96,11 +93,7 @@ export class NetworkedPlayerManager {
     }
     player.updateCount++
     
-    // Log first few updates and then periodically
-    if (player.updateCount <= 3 || player.updateCount % 100 === 0) {
-      console.log(`📍 Position update #${player.updateCount} for player ${playerId}:`, 
-        { x: position.x.toFixed(1), y: position.y.toFixed(1), z: position.z.toFixed(1) })
-    }
+    // Removed spammy position update logging
     
     // Set target position for smooth interpolation
     // Server sends ground-level position, so we use it directly
